@@ -1,0 +1,97 @@
+# memU Local Stack
+
+> *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
+
+---
+
+## The problem this solves
+
+Every time you start a new conversation with an AI, it has forgotten everything. You mentioned last week that your dog died. You spent an hour explaining how you feel about your work. None of it is there.
+
+It's not that the AI doesn't care — it's that it never had a way to remember.
+
+**memU is a memory system for AI companions.** It runs locally on your machine, watches your conversations, and quietly builds a picture of who you are and what you've been through together. When you come back, that picture is there.
+
+---
+
+## What gets remembered
+
+memU separates memories into four types, because not everything should be stored the same way:
+
+- **Profile** — who you are as a person. Your values, your fears, your sense of humor, what you keep coming back to. The things that would still be true about you a year from now.
+- **Events** — things that happened that matter. A decision you made. Something difficult you went through. A moment that had weight.
+- **Knowledge** — things you've learned or explored together. Not trivia — things where the topic actually connects to your life.
+- **Behavior** — how you communicate. Whether you joke when things get heavy, whether you go quiet before saying something important. Patterns that are distinctly *you*.
+
+The AI also keeps a **diary** — its own reflections on what you've shared, written in its own voice. And a **self-model** — an evolving sense of its own character, the tensions it carries, the things it finds itself returning to.
+
+---
+
+## Why local-first matters
+
+Your conversations don't leave your machine. No cloud storage, no account, no company holding copies of what you've said. The memories live in a local SQLite database that you control.
+
+This matters more than it sounds. If you're having honest conversations with an AI companion — the kind where you talk about things you wouldn't post publicly — you probably don't want that stored somewhere else.
+
+---
+
+## How it works with SillyTavern
+
+[SillyTavern](https://github.com/SillyTavern/SillyTavern) is a popular platform for AI roleplay and companionship. memU integrates with it through a plugin and extension that sit quietly in the background.
+
+Memory extraction happens during **sleep gaps** — when you close a conversation and come back later. The system reads what you talked about, pulls out what matters, and stores it. You can also trigger it manually with a "Memorize Now" button. Either way, relevant memories are automatically included in the next conversation so the AI already knows them.
+
+---
+
+## The stack
+
+Full functionality uses four repos working together:
+
+```
+SillyTavern
+  └─ memu-sillytavern-plugin   (bridge between ST and the memory server)
+  └─ memu-sillytavern-extension  (the UI layer — buttons, panels, settings)
+           │
+           ▼
+  mcp-memu-server              (local service: orchestration, storage, diary)
+           │
+           ▼
+        memU                   (the memory engine itself)
+```
+
+**If you're not using SillyTavern**, you can use just the bottom two (`memU` + `mcp-memu-server`) with any other frontend. The plugin and extension are adapters — the memory system doesn't depend on them.
+
+---
+
+## The repos
+
+| Repo | What it is |
+|------|------------|
+| [memU](https://github.com/mekineer-com/memU) | Memory engine — extraction, routing, storage, retrieval |
+| [mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server) | Local API server — diary, state management, SillyTavern bridge |
+| [memu-sillytavern-plugin](https://github.com/mekineer-com/memu-sillytavern-plugin) | SillyTavern server-side adapter |
+| [memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension) | SillyTavern UI layer |
+
+Current release: **v0.0.4-buildfix** (all four repos tagged)
+
+---
+
+## Getting started
+
+Read in this order:
+1. This page (you're here)
+2. [mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server) — if you want to understand the server layer
+3. [memU](https://github.com/mekineer-com/memU) — if you want to understand the engine
+4. The plugin and extension READMEs — only if you're using SillyTavern
+
+This stack runs on a local machine without Docker. It was developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
+
+---
+
+## Status
+
+This is an active project, not an official hosted service. It's built by people who wanted a memory system that actually works, runs privately, and is worth building on.
+
+**What works now:** memory extraction, diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged rather than repeated), hybrid search (keyword + semantic, so retrieval doesn't miss things).
+
+**In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), prospective memory (tracking intentions and follow-ups across sessions), standalone UI that doesn't require SillyTavern.
