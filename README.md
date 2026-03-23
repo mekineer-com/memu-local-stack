@@ -78,13 +78,25 @@ Current release: **v0.0.4-buildfix** (all four repos tagged)
 
 ## Getting started
 
-Read in this order:
-1. This page (you're here)
-2. [mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server) — if you want to understand the server layer
-3. [memU](https://github.com/mekineer-com/memU) — if you want to understand the engine
-4. The plugin and extension READMEs — only if you're using SillyTavern
+**You'll need:**
+- Python 3.12+
+- Node.js (for the SillyTavern pieces)
+- An API key for an LLM provider (OpenAI or any compatible service — used for extracting memories from conversations)
+- SillyTavern already installed, if you're using the SillyTavern integration
 
-This stack runs on a local machine without Docker. It was developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
+**Set up in this order:**
+
+1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service that runs everything. Copy `config.example.json` → `config.json`, set your API key, and start it. It runs on port 8098.
+
+2. **[memU](https://github.com/mekineer-com/memU)** — the memory engine. Clone it and point `mcp-memu-server`'s config at it (the `memu.path` setting).
+
+3. **[memu-sillytavern-plugin](https://github.com/mekineer-com/memu-sillytavern-plugin)** — clone into SillyTavern's `plugins/` folder. Enable `enableServerPlugins: true` in SillyTavern's `config.yaml`, then restart SillyTavern.
+
+4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This is the UI layer — it adds the memU panel and connects everything together.
+
+Each repo's README goes into more detail. Questions? Find us on [Discord](https://discord.gg/memu).
+
+This stack runs without Docker. Developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
 
 ---
 
