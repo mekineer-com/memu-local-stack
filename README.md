@@ -94,7 +94,7 @@ SillyTavern
 
 4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This is the UI layer — it adds the memU panel and connects everything together.
 
-Each repo's README goes into more detail. Questions? Find us on [Discord](https://discord.gg/memu).
+Each repo's README goes into more detail. Questions? Open an issue on the relevant repo.
 
 This stack runs without Docker. Developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
 
