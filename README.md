@@ -72,7 +72,7 @@ SillyTavern
 | [memu-sillytavern-plugin](https://github.com/mekineer-com/memu-sillytavern-plugin) | SillyTavern server-side adapter |
 | [memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension) | SillyTavern UI layer |
 
-Current release: **v0.0.4-buildfix** (all four repos tagged)
+**Always clone from `main`** — tagged releases fall behind quickly. Use `git clone` (links in the table above) or download the zip from the green **Code** button on each repo page.
 
 ---
 
