@@ -94,6 +94,16 @@ SillyTavern
 
 4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This is the UI layer — it adds the memU panel and connects everything together.
 
+**Config callout** — three things in `config.json` must match your actual layout:
+
+| Setting | What it points to |
+|---------|------------------|
+| `memu.path` | path to `memu/src` (the engine source, from step 2) |
+| `storage.metadata_store.dsn` | where the SQLite DB will live |
+| `llm.embed_model` | embedding model name — e.g. `text-embedding-3-large` (NanoGPT/OpenAI both support it) |
+
+After step 4, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
+
 Each repo's README goes into more detail. Questions? Open an issue on the relevant repo.
 
 This stack runs without Docker. Developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
@@ -106,4 +116,4 @@ This is an active project, not an official hosted service. It's built by people 
 
 **What works now:** memory extraction, diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged rather than repeated), hybrid search (keyword + semantic, so retrieval doesn't miss things), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn).
 
-**In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), prospective memory (tracking intentions and follow-ups across sessions), standalone UI that doesn't require SillyTavern.
+**In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), prospective memory (tracking intentions and follow-ups across sessions).
