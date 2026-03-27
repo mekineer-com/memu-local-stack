@@ -86,7 +86,7 @@ SillyTavern
 
 **Set up in this order:**
 
-1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service that runs everything. Copy `config.example.json` → `config.json`, set your API key, and start it. It runs on port 8098.
+1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service that runs everything. Copy `config.example.json` → `config.json`, set your API key, and start it. It runs on port 8099.
 
 2. **[memU](https://github.com/mekineer-com/memU)** — the memory engine. Clone it and point `mcp-memu-server`'s config at it (the `memu.path` setting).
 
@@ -104,6 +104,6 @@ This stack runs without Docker. Developed on Alpine Linux but works on any syste
 
 This is an active project, not an official hosted service. It's built by people who wanted a memory system that actually works, runs privately, and is worth building on.
 
-**What works now:** memory extraction, diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged rather than repeated), hybrid search (keyword + semantic, so retrieval doesn't miss things).
+**What works now:** memory extraction, diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged rather than repeated), hybrid search (keyword + semantic, so retrieval doesn't miss things), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn).
 
 **In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), prospective memory (tracking intentions and follow-ups across sessions), standalone UI that doesn't require SillyTavern.
