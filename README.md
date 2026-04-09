@@ -1,5 +1,7 @@
 # memU Local Stack
 
+_Last updated: 2026-04-09_
+
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
 ---
@@ -16,12 +18,13 @@ It's not that the AI doesn't care — it's that it never had a way to remember.
 
 ## What gets remembered
 
-memU separates memories into four types, because not everything should be stored the same way:
+memU separates memories into five types, because not everything should be stored the same way:
 
 - **Profile** — who you are as a person. Your values, your fears, your sense of humor, what you keep coming back to. The things that would still be true about you a year from now.
 - **Events** — things that happened that matter. A decision you made. Something difficult you went through. A moment that had weight.
 - **Knowledge** — things you've learned or explored together. Not trivia — things where the topic actually connects to your life.
 - **Behavior** — how you communicate. Whether you joke when things get heavy, whether you go quiet before saying something important. Patterns that are distinctly *you*.
+- **Social** — the people in your life. Friends, family, coworkers, anyone you talk about. The relationship context that gives your conversations texture.
 
 The AI also keeps a **diary** — its own reflections on what you've shared, written in its own voice. And a **self-model** — an evolving sense of its own character, the tensions it carries, the things it finds itself returning to.
 
@@ -76,6 +79,24 @@ SillyTavern
 
 ---
 
+## Schema compatibility
+
+This project is in prerelease. **Database schema changes between versions.** If you upgrade to a newer release tag, your existing database is likely incompatible and will cause errors. No migration tooling exists yet — expect a fresh start when moving between prerelease tags.
+
+---
+
+## Release tags
+
+All four repos are tagged in sync at each release. Use matching tags across all four.
+
+| Tag | Notes |
+|-----|-------|
+| `v0.0.5-buildfix` | Soul turn loop, memory cache, category seeds |
+| `v0.0.6-buildfix` | Social memory type, diary overhaul, self-model simplification |
+| `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
+
+---
+
 ## Getting started
 
 **You'll need:**
@@ -114,6 +135,6 @@ This stack runs without Docker. Developed on Alpine Linux but works on any syste
 
 This is an active project, not an official hosted service. It's built by people who wanted a memory system that actually works, runs privately, and is worth building on.
 
-**What works now:** memory extraction, diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged rather than repeated), hybrid search (keyword + semantic, so retrieval doesn't miss things), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn).
+**What works now:** five memory types (profile, events, knowledge, behavior, social), diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged and reinforcement-counted rather than repeated), hybrid search (keyword + semantic), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn), temporal awareness (memories are labeled with relative time — "3 weeks ago", "yesterday").
 
 **In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), prospective memory (tracking intentions and follow-ups across sessions).
