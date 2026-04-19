@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-04-09_
+_Last updated: 2026-04-18_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -94,6 +94,7 @@ All four repos are tagged in sync at each release. Use matching tags across all 
 | `v0.0.5-buildfix` | Soul turn loop, memory cache, category seeds |
 | `v0.0.6-buildfix` | Social memory type, diary overhaul, self-model simplification |
 | `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
+| `v0.0.8-buildfix` | Consolidation pipeline, entity graph + temporal queries, life goals, APImw edge writing |
 
 ---
 
@@ -135,6 +136,6 @@ This stack runs without Docker. Developed on Alpine Linux but works on any syste
 
 This is an active project, not an official hosted service. It's built by people who wanted a memory system that actually works, runs privately, and is worth building on.
 
-**What works now:** five memory types (profile, events, knowledge, behavior, social), diary, self-model, SillyTavern integration, sleep-gap timing, local storage, memory decay (old low-importance memories fade naturally), semantic deduplication (near-duplicate memories are merged and reinforcement-counted rather than repeated), hybrid search (keyword + semantic), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn), temporal awareness (memories are labeled with relative time — "3 weeks ago", "yesterday").
+**What works now:** five memory types (profile, events, knowledge, behavior, social), consolidation pipeline (weekly reflection that writes diary entries, updates the self-model narrative, and manages life goals), entity graph with temporal queries (named entities linked to memories by typed edges; point-in-time graph filtering), life goals (long-horizon intentions managed exclusively by consolidation), SillyTavern integration, sleep-gap timing, local storage, semantic deduplication (near-duplicate memories merged and reinforcement-counted), hybrid search (keyword + semantic), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn), temporal awareness (memories labeled with relative time — "3 weeks ago", "yesterday").
 
-**In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), prospective memory (tracking intentions and follow-ups across sessions).
+**In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), PicoClaw autonomous soul loop.
