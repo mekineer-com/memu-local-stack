@@ -157,6 +157,33 @@ There's a 10-minute cooldown between suggestions so the soul isn't churning her 
 
 ---
 
+## Things to know
+
+**One soul = one conversation.** Each `soul_id` is bound to a single conversation. If you want two parallel personalities (e.g., a partner *and* a separate research assistant), spin up two souls with two different `soul_id` values. They get isolated memory stores.
+
+**Where the data lives.** All memory state is in a SQLite file at the path you set in `storage.metadata_store.dsn` (per soul, by default — check the path you wrote in `config.json`). To back up your companion, copy that file. To start fresh, delete it.
+
+**This costs money to run.** Every turn calls your LLM provider (the soul's response). Every memorize calls it several more times (router + extraction per applicable type, plus optional category clustering). Consolidation calls it once per week, plus a per-episode background retrieval. APImw runs a couple of background calls after each turn. With a budget provider like NanoGPT this stays cheap, but it isn't free — assume real API spend.
+
+**Consolidation cadence is real time, not turn count.** It's gated by `consolidation_interval_days` (default 7) since the last run. If you don't talk to her for two weeks then come back, the next memorize fires a consolidation immediately.
+
+**Weekly vs background.** Don't confuse the two background passes:
+- **APImw** runs after each turn (multi-step retrieval + edge writing). She comes back richer the next turn.
+- **Consolidation** runs weekly (or on first activity after the interval lapses). She rewrites her self-model and writes diary entries.
+
+---
+
+## User-facing controls in the extension
+
+| Control | Where | What it does |
+|---------|-------|--------------|
+| **Memorize Now** button | memU extension panel | Forces an extraction pass on whatever's accumulated since last memorize. Bypasses the minimum-chunk gate. |
+| **Re-memorize chat** | SillyTavern's chat **options menu** (the rotate-left icon in the ⋯ list) | Resets the digest cursor to zero — re-extracts the entire chat from the very beginning. Use after schema changes or if extraction looked wrong. |
+| **Eye icon** (👁) | memU extension drawer header, next to the memU logo | Opens a memory inspector. Categories show as memU lorebooks, each containing the items the soul has stored under that category. |
+| **Narrative Suggestion** input | memU extension panel, under "Memorize Now" | See the section above. |
+
+---
+
 ## Status
 
 This is an active project, not an official hosted service. It's built by people who wanted a memory system that actually works, runs privately, and is worth building on.
