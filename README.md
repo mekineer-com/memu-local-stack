@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-04-18_
+_Last updated: 2026-04-20_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -129,6 +129,31 @@ After step 4, open the memU extension panel in SillyTavern and set **Server URL*
 Each repo's README goes into more detail. Questions? Open an issue on the relevant repo.
 
 This stack runs without Docker. Developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
+
+---
+
+## Letting the soul author her own self-model
+
+The companion has a `narrative_self` — her evolving sense of who she is. The weekly **consolidation pass** rewrites it as her experience accumulates, and you can also feed her a suggestion directly via the **Narrative Suggestion** input (the bubble under "Memorize Now").
+
+For any of this to actually shape her turn, the **SillyTavern character card description must be empty**. The soul's identity gets resolved each turn in this order:
+
+1. The ST character card description, if filled in → wins, every time
+2. Otherwise: her stored `narrative_self` from `memu_self_model`
+3. Otherwise: a generic default ("You are {name}…")
+
+So if you write a character description in ST, that's who she is — her own self-model never reaches the prompt. Leave the description empty and she'll use what consolidation (and your suggestions) have built up.
+
+### Using Narrative Suggestion
+
+1. Open the memU extension panel in SillyTavern.
+2. Find the **Narrative Suggestion** input under the "Memorize Now" button.
+3. Type what you want her to consider — a phrasing, a correction, a new way of seeing herself.
+4. Click **Send**. A small green check ✓ means she accepted and integrated it; a red X ✗ means she chose not to.
+5. If she accepts, the new text is written to her `narrative_self` and also pushed back into the ST character description (so the panel stays in sync). The previous version is preserved in her memory store with an `evolved_into` link, so she can still recall what she used to think.
+6. If you manually edit the ST character description yourself, the **Send** button disables with a warning — that's an "override" path; clear it (or accept your edit explicitly through the panel) to re-enable suggestions.
+
+There's a 10-minute cooldown between suggestions so the soul isn't churning her identity every minute.
 
 ---
 
