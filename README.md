@@ -190,7 +190,7 @@ This is an active project, not an official hosted service. It's built by people 
 
 **What works now:** five memory types (profile, events, knowledge, behavior, social), consolidation pipeline (weekly reflection that writes diary entries, updates the self-model narrative, and manages life goals), entity graph with temporal queries (named entities linked to memories by typed edges; point-in-time graph filtering), life goals (long-horizon intentions managed exclusively by consolidation), SillyTavern integration, sleep-gap timing, local storage, semantic deduplication (near-duplicate memories merged and reinforcement-counted), hybrid search (keyword + semantic), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn), temporal awareness (memories labeled with relative time — "3 weeks ago", "yesterday").
 
-**In progress:** procedural knowledge sidecar (curated protocols the AI can reference during conversation), PicoClaw autonomous soul loop.
+**In progress:** procedural-memory sidecar — a curated, shared knowledge base the soul can opt into during retrieval, separate from memories derived from her own conversations. First domain is mental health (15 anchor entries covering rumination, grief, panic, self-criticism, loneliness, attachment, life transitions, avoidance, boundaries, and more). Content is curated; storage + retrieval wiring is designed but not yet built. PicoClaw autonomous soul loop.
 
 ---
 
