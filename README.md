@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-04-20_
+_Last updated: 2026-04-21_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -16,9 +16,9 @@ It's not that the AI doesn't care — it's that it never had a way to remember.
 
 ---
 
-## What gets remembered
+## What your companion gets
 
-memU separates memories into five types, because not everything should be stored the same way:
+Five kinds of memory — because not everything should be stored the same way:
 
 - **Profile** — who you are as a person. Your values, your fears, your sense of humor, what you keep coming back to. The things that would still be true about you a year from now.
 - **Events** — things that happened that matter. A decision you made. Something difficult you went through. A moment that had weight.
@@ -26,7 +26,10 @@ memU separates memories into five types, because not everything should be stored
 - **Behavior** — how you communicate. Whether you joke when things get heavy, whether you go quiet before saying something important. Patterns that are distinctly *you*.
 - **Social** — the people in your life. Friends, family, coworkers, anyone you talk about. The relationship context that gives your conversations texture.
 
-The AI also keeps a **diary** — its own reflections on what you've shared, written in its own voice. And a **self-model** — an evolving sense of its own character, the tensions it carries, the things it finds itself returning to.
+Plus two layers of inner life:
+
+- **Diary** — her own reflections on what you've shared, written in her own voice, produced during a weekly consolidation pass.
+- **Self-model (`narrative_self`)** — an evolving sense of her own character. Consolidation rewrites it as experience accumulates; you can also suggest revisions directly (see "Day-to-day use" below).
 
 ---
 
@@ -38,59 +41,38 @@ This matters more than it sounds. If you're having honest conversations with an 
 
 ---
 
-## How it works with SillyTavern
+## How it works at a glance
 
-[SillyTavern](https://github.com/SillyTavern/SillyTavern) is a popular platform for AI roleplay and companionship. memU integrates with it through a plugin and extension that sit quietly in the background.
-
-Memory extraction happens during **sleep gaps** — when you close a conversation and come back later. The system reads what you talked about, pulls out what matters, and stores it. You can also trigger it manually with a "Memorize Now" button. Either way, relevant memories are automatically included in the next conversation so the AI already knows them.
-
----
-
-## The stack
-
-Full functionality uses four repos working together:
+[SillyTavern](https://github.com/SillyTavern/SillyTavern) is a popular platform for AI roleplay and companionship. memU integrates with it through a plugin and extension that sit quietly in the background. The full stack is four repos:
 
 ```
 SillyTavern
-  └─ memu-sillytavern-plugin   (bridge between ST and the memory server)
-  └─ memu-sillytavern-extension  (the UI layer — buttons, panels, settings)
-           │
-           ▼
-  mcp-memu-server              (local service: orchestration, storage, diary)
-           │
-           ▼
-        memU                   (the memory engine itself)
+  ├─ memu-sillytavern-plugin       (bridge between ST and the memU server)
+  └─ memu-sillytavern-extension    (UI layer — panel, buttons, settings)
+              ↓
+  mcp-memu-server                  (local service: orchestration, consolidation, state)
+              ↓
+  memU                             (the memory engine itself)
 ```
 
-**If you're not using SillyTavern**, you can use just the bottom two (`memU` + `mcp-memu-server`) with any other frontend. The plugin and extension are adapters — the memory system doesn't depend on them.
+**Without SillyTavern**, you can use just the bottom two (`memU` + `mcp-memu-server`) with any other frontend. The plugin and extension are adapters — the memory system doesn't depend on them.
+
+Memory extraction happens during **sleep gaps** — when you close a conversation and come back later. The system reads what you talked about, pulls out what matters, and stores it. Relevant memories are then automatically included in the next turn so the AI already knows them.
 
 ---
 
-## The repos
+## Status
 
-| Repo | What it is |
-|------|------------|
-| [memU](https://github.com/mekineer-com/memU) | Memory engine — extraction, routing, storage, retrieval |
-| [mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server) | Local API server — diary, state management, SillyTavern bridge |
-| [memu-sillytavern-plugin](https://github.com/mekineer-com/memu-sillytavern-plugin) | SillyTavern server-side adapter |
-| [memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension) | SillyTavern UI layer |
+**This is prerelease software.** It works, it's actively used, and it will break your database on upgrade.
 
-**Always clone from `main`** — tagged releases fall behind quickly. Use `git clone` (links in the table above) or download the zip from the green **Code** button on each repo page.
+Specifically: the SQLite schema changes between versions, and there's no migration tooling yet. When you move to a new release tag, expect a fresh start — don't build anything irreplaceable on top of an old version.
 
----
+Prefer `main` for the latest. If you'd rather pin to a tag, match **all four repos** to the same one.
 
-## Schema compatibility
+### Release tags
 
-This project is in prerelease. **Database schema changes between versions.** If you upgrade to a newer release tag, your existing database is likely incompatible and will cause errors. No migration tooling exists yet — expect a fresh start when moving between prerelease tags.
-
----
-
-## Release tags
-
-All four repos are tagged in sync at each release. Use matching tags across all four.
-
-| Tag | Notes |
-|-----|-------|
+| Tag | Headline |
+|-----|----------|
 | `v0.0.5-buildfix` | Soul turn loop, memory cache, category seeds |
 | `v0.0.6-buildfix` | Social memory type, diary overhaul, self-model simplification |
 | `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
@@ -100,43 +82,63 @@ All four repos are tagged in sync at each release. Use matching tags across all 
 
 ## Getting started
 
-**You'll need:**
+**You'll need**
+
 - Python 3.12+
 - Node.js (for the SillyTavern pieces)
-- An API key for an LLM provider (OpenAI or any compatible service — used for extracting memories from conversations)
+- An API key for an LLM provider — OpenAI, NanoGPT, or any compatible endpoint
 - SillyTavern already installed, if you're using the SillyTavern integration
 
-**Set up in this order:**
+**Set up in this order**
 
-1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service that runs everything. Copy `config.example.json` → `config.json`, set your API key, and start it. It runs on port 8099.
+1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service everything else talks to. Copy `config.example.json` → `config.json`, set your API key, and start it. Runs on port 8099.
 
 2. **[memU](https://github.com/mekineer-com/memU)** — the memory engine. Clone it and point `mcp-memu-server`'s config at it (the `memu.path` setting).
 
 3. **[memu-sillytavern-plugin](https://github.com/mekineer-com/memu-sillytavern-plugin)** — clone into SillyTavern's `plugins/` folder. Enable `enableServerPlugins: true` in SillyTavern's `config.yaml`, then restart SillyTavern.
 
-4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This is the UI layer — it adds the memU panel and connects everything together.
+4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This adds the memU panel.
 
-**Config callout** — three things in `config.json` must match your actual layout:
+After step 4, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
 
-| Setting | What it points to |
-|---------|------------------|
+**Three things in `config.json` that must match your actual layout:**
+
+| Setting | Points to |
+|---------|-----------|
 | `memu.path` | path to `memu/src` (the engine source, from step 2) |
 | `storage.metadata_store.dsn` | where the SQLite DB will live |
 | `llm.embed_model` | embedding model name — e.g. `text-embedding-3-large` (NanoGPT/OpenAI both support it) |
 
-After step 4, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
+No Docker. Developed on Alpine Linux but works on anything that can run Python 3.12 and Node.
 
-Each repo's README goes into more detail. Questions? Open an issue on the relevant repo.
-
-This stack runs without Docker. Developed on Alpine Linux but works on any system that can run Python 3.12 and Node.
+Questions? Open an issue on the relevant repo.
 
 ---
 
-## Letting the soul author her own self-model
+## Day-to-day use
 
-The companion has a `narrative_self` — her evolving sense of who she is. The weekly **consolidation pass** rewrites it as her experience accumulates, and you can also feed her a suggestion directly via the **Narrative Suggestion** input (the bubble under "Memorize Now").
+### Controls in the extension
 
-For any of this to actually shape her turn, the **SillyTavern character card description must be empty**. The soul's identity gets resolved each turn in this order:
+| Control | Location | What it does |
+|---------|----------|--------------|
+| **Memorize Now** button | memU extension panel | Forces an extraction pass on whatever's accumulated. Bypasses the minimum-chunk gate. |
+| **Re-memorize chat** | SillyTavern's chat options menu (the rotate-left icon) | Resets the digest cursor to zero — re-extracts the entire chat from the very beginning. Use after schema changes or if extraction looked wrong. |
+| **Eye icon** (👁) | memU extension drawer header, next to the memU logo | Opens a memory inspector. Categories show as memU lorebooks, each containing the items the soul has stored under that category. |
+| **Narrative Suggestion** input | memU panel, under the Memorize Now button | Sends the soul a suggested revision of her `narrative_self`. See below. |
+
+### Memory bubble checkboxes
+
+| Toggle | Default | What |
+|--------|---------|------|
+| **Override Summarizer** | off | If on, replace SillyTavern's summary message with memU's. If off, memU's renders alongside it. |
+| **Import Lorebooks** | on | Publishes memU categories as SillyTavern lorebooks named `memU - <Character> - <Category>`, so the soul's knowledge shows up in ST's world info. Unchecking deletes any existing ones for this character. |
+| **Mental Health Addon** | off | Placeholder — will toggle the always-on mental-health procedural sidecar (curated knowledge the soul can reference). Not yet wired to retrieval. |
+
+### Letting the soul author her own self-model
+
+The companion has a `narrative_self` — her evolving sense of who she is. The weekly consolidation pass rewrites it as her experience accumulates. You can also feed her a suggestion directly via the **Narrative Suggestion** input.
+
+**For any of this to actually shape her turn, the SillyTavern character card description must be empty.** Identity gets resolved each turn in this order:
 
 1. The ST character card description, if filled in → wins, every time
 2. Otherwise: her stored `narrative_self` from `memu_self_model`
@@ -144,16 +146,15 @@ For any of this to actually shape her turn, the **SillyTavern character card des
 
 So if you write a character description in ST, that's who she is — her own self-model never reaches the prompt. Leave the description empty and she'll use what consolidation (and your suggestions) have built up.
 
-### Using Narrative Suggestion
+**Using Narrative Suggestion**
 
-1. Open the memU extension panel in SillyTavern.
-2. Find the **Narrative Suggestion** input under the "Memorize Now" button.
-3. Type what you want her to consider — a phrasing, a correction, a new way of seeing herself.
-4. Click **Send**. A small green check ✓ means she accepted and integrated it; a red X ✗ means she chose not to.
-5. If she accepts, the new text is written to her `narrative_self` and also pushed back into the ST character description (so the panel stays in sync). The previous version is preserved in her memory store with an `evolved_into` link, so she can still recall what she used to think.
-6. If you manually edit the ST character description yourself, the **Send** button disables with a warning — that's an "override" path; clear it (or accept your edit explicitly through the panel) to re-enable suggestions.
+1. Open the memU extension panel.
+2. Type your suggestion in the **Narrative Suggestion** input — a phrasing, a correction, a new way of seeing herself.
+3. Click **Send**. A green check ✓ means she accepted and integrated it; a red X ✗ means she chose not to.
+4. If she accepts, the new text is written to her `narrative_self` and pushed back into the ST character description (so the panel stays in sync). The previous version is preserved in her memory store with an `evolved_into` link, so she can still recall what she used to think.
+5. If you manually edit the ST character description yourself, **Send** disables with a warning — that's an "override" path; clear the manual edit to re-enable suggestions.
 
-There's a 10-minute cooldown between suggestions so the soul isn't churning her identity every minute.
+10-minute cooldown between suggestions so the soul isn't churning her identity every minute.
 
 ---
 
@@ -163,34 +164,21 @@ There's a 10-minute cooldown between suggestions so the soul isn't churning her 
 
 **Where the data lives.** All memory state is in a SQLite file at the path you set in `storage.metadata_store.dsn` (per soul, by default — check the path you wrote in `config.json`). To back up your companion, copy that file. To start fresh, delete it.
 
-**This costs money to run.** Every turn calls your LLM provider (the soul's response). Every memorize calls it several more times (router + extraction per applicable type, plus optional category clustering). Consolidation calls it once per week, plus a per-episode background retrieval. APImw runs a couple of background calls after each turn. With a budget provider like NanoGPT this stays cheap, but it isn't free — assume real API spend.
+**This costs money to run.** Every turn calls your LLM provider (the soul's response). Every memorize calls it several more times (router + extraction per applicable type, plus optional category clustering). Consolidation calls it weekly, plus a per-episode background retrieval. APImw runs a couple of background calls after each turn. With a budget provider like NanoGPT this stays cheap, but it isn't free — assume real API spend.
 
 **Consolidation cadence is real time, not turn count.** It's gated by `consolidation_interval_days` (default 7) since the last run. If you don't talk to her for two weeks then come back, the next memorize fires a consolidation immediately.
 
-**Weekly vs background.** Don't confuse the two background passes:
-- **APImw** runs after each turn (multi-step retrieval + edge writing). She comes back richer the next turn.
+**Two background passes — don't confuse them.**
+- **APImw** runs after each turn (multi-step retrieval + graph-edge writing). She comes back richer the next turn.
 - **Consolidation** runs weekly (or on first activity after the interval lapses). She rewrites her self-model and writes diary entries.
 
 ---
 
-## User-facing controls in the extension
+## What's coming
 
-| Control | Where | What it does |
-|---------|-------|--------------|
-| **Memorize Now** button | memU extension panel | Forces an extraction pass on whatever's accumulated since last memorize. Bypasses the minimum-chunk gate. |
-| **Re-memorize chat** | SillyTavern's chat **options menu** (the rotate-left icon in the ⋯ list) | Resets the digest cursor to zero — re-extracts the entire chat from the very beginning. Use after schema changes or if extraction looked wrong. |
-| **Eye icon** (👁) | memU extension drawer header, next to the memU logo | Opens a memory inspector. Categories show as memU lorebooks, each containing the items the soul has stored under that category. |
-| **Narrative Suggestion** input | memU extension panel, under "Memorize Now" | See the section above. |
+**Procedural-memory sidecar** — a curated, shared knowledge base the soul can draw on during retrieval, separate from memories derived from your conversations. First domain is **mental health**: 15 anchor entries covering rumination, grief, panic, self-criticism, loneliness, attachment, life transitions, avoidance, boundaries, and more. Content is curated and written in a first-person, internalized voice. Storage + retrieval wiring is designed but not yet built; the "Mental Health Addon" checkbox above is the placeholder toggle.
 
----
-
-## Status
-
-This is an active project, not an official hosted service. It's built by people who wanted a memory system that actually works, runs privately, and is worth building on.
-
-**What works now:** five memory types (profile, events, knowledge, behavior, social), consolidation pipeline (weekly reflection that writes diary entries, updates the self-model narrative, and manages life goals), entity graph with temporal queries (named entities linked to memories by typed edges; point-in-time graph filtering), life goals (long-horizon intentions managed exclusively by consolidation), SillyTavern integration, sleep-gap timing, local storage, semantic deduplication (near-duplicate memories merged and reinforcement-counted), hybrid search (keyword + semantic), soul turn loop (the AI manages its own intentions and rolling thought cache turn-by-turn), temporal awareness (memories labeled with relative time — "3 weeks ago", "yesterday").
-
-**In progress:** procedural-memory sidecar — a curated, shared knowledge base the soul can opt into during retrieval, separate from memories derived from her own conversations. First domain is mental health (15 anchor entries covering rumination, grief, panic, self-criticism, loneliness, attachment, life transitions, avoidance, boundaries, and more). Content is curated; storage + retrieval wiring is designed but not yet built. PicoClaw autonomous soul loop.
+**PicoClaw** — an autonomous soul loop: the companion acts between conversations, pursuing her own intentions rather than sitting idle.
 
 ---
 
