@@ -77,6 +77,7 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match **all four rep
 | `v0.0.6-buildfix` | Social memory type, diary overhaul, self-model simplification |
 | `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
 | `v0.0.8-buildfix` | Consolidation pipeline, entity graph + temporal queries, life goals, APImw edge writing |
+| `v0.0.9-buildfix` | Narrative Suggestion end-to-end; turn-prompt length caps + stateless chat_x; triple write-time dedup + symmetric canonicalization; consolidation reads day-files (drops full.json dependency); category config rename; lorebook sync + extension Memory bubble checkboxes |
 
 ---
 
