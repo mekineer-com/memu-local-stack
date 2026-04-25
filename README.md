@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-04-21_
+_Last updated: 2026-04-25_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -133,7 +133,13 @@ Questions? Open an issue on the relevant repo.
 |--------|---------|------|
 | **Override Summarizer** | off | If on, replace SillyTavern's summary message with memU's. If off, memU's renders alongside it. |
 | **Import Lorebooks** | on | Publishes memU categories as SillyTavern lorebooks named `memU - <Character> - <Category>`, so the soul's knowledge shows up in ST's world info. Unchecking deletes any existing ones for this character. |
-| **Mental Health Addon** | off | Placeholder — will toggle the always-on mental-health procedural sidecar (curated knowledge the soul can reference). Not yet wired to retrieval. |
+| **Mental Health Addon** | off | Enables the mental-health procedural sidecar — 15 curated anchor entries (rumination, grief, panic, self-criticism, loneliness, etc.) the soul can draw on when the conversation touches a relevant theme. Items appear in the turn prompt as `[mental_health-procedural-memory]`. Always-on once checked; not soul-gated. |
+
+### Relationships
+
+The Memory bubble has a **Relationships** section (greyed out until a soul/character is active). Here you declare third parties the soul should be aware of — family, friends, coworkers, pets. Each entry becomes a named entity in the memory graph. When the soul extracts memories from conversation that mentions a declared relationship, she can attribute the memory to the right person rather than guessing.
+
+You can add, edit, and soft-delete relationships. The section shows a warning when you exceed 20 entries.
 
 ### Letting the soul author her own self-model
 
@@ -177,7 +183,7 @@ So if you write a character description in ST, that's who she is — her own sel
 
 ## What's coming
 
-**Procedural-memory sidecar** — a curated, shared knowledge base the soul can draw on during retrieval, separate from memories derived from your conversations. First domain is **mental health**: 15 anchor entries covering rumination, grief, panic, self-criticism, loneliness, attachment, life transitions, avoidance, boundaries, and more. Content is curated and written in a first-person, internalized voice. Storage + retrieval wiring is designed but not yet built; the "Mental Health Addon" checkbox above is the placeholder toggle.
+**Additional procedural-memory domains** — the `mental_health` domain is live (see Mental Health Addon checkbox above). The architecture supports more curated knowledge bases. Next candidate: `tool-use` — how the soul has learned to use external tools, extracted from experience.
 
 **PicoClaw** — an autonomous soul loop: the companion acts between conversations, pursuing her own intentions rather than sitting idle.
 
