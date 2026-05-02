@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-04-29_
+_Last updated: 2026-05-01_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
