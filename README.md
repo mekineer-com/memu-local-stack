@@ -59,7 +59,9 @@ SillyTavern
 
 **Without SillyTavern**, you can use just the bottom two (`memU` + `mcp-memu-server`) with any other frontend. The plugin and extension are adapters — the memory system doesn't depend on them.
 
-Memory extraction happens during **sleep gaps** — when you close a conversation and come back later. The system reads what you talked about, pulls out what matters, and stores it. Relevant memories are then automatically included in the next turn so the AI already knows them.
+Memory extraction happens during **sleep gaps** — when you close a conversation and come back later (≥3 hours with overlap in a 22:00–08:00 window). The system reads what you talked about, pulls out what matters, and stores it. Relevant memories are then automatically included in the next turn so the AI already knows them.
+
+**If you never leave the conversation, nothing gets memorized automatically.** The system waits for a sleep gap before extracting. The "Memorize Now" button is intended to force extraction of the current tail without waiting, but currently does not work — it still requires sleep-gap segments to exist. For now, close the conversation and come back to trigger memorize.
 
 ---
 
@@ -124,8 +126,8 @@ Questions? Open an issue on the relevant repo.
 
 | Control | Location | What it does |
 |---------|----------|--------------|
-| **Memorize Now** button | memU extension panel | Forces an extraction pass on whatever's accumulated. Bypasses the minimum-chunk gate. |
-| **Re-memorize chat** | SillyTavern's chat options menu (the rotate-left icon) | Resets the digest cursor to zero — re-extracts the entire chat from the very beginning. Use after schema changes or if extraction looked wrong. |
+| **Memorize Now** button | memU extension panel | Intended to force extraction of the current tail. **Currently broken:** sends `force=true` to the server, which resets the cursor but still requires sleep-gap segments — so it does nothing on a conversation without qualifying gaps. |
+| **Re-memorize chat** | SillyTavern's chat options menu (the rotate-left icon) | Wipes client-side progress and lorebooks, then sends `force=true` — re-extracts all existing sleep-gap segments from the beginning. Use after schema changes or if extraction looked wrong. Same sleep-gap requirement as Memorize Now. |
 | **Eye icon** (👁) | memU extension drawer header, next to the memU logo | Opens a memory inspector. Categories show as memU lorebooks, each containing the items the soul has stored under that category. |
 | **Narrative Suggestion** input | memU panel, under the Memorize Now button | Sends the soul a suggested revision of her `narrative_self`. See below. |
 
@@ -150,7 +152,7 @@ The companion has a `narrative_self` — her evolving sense of who she is. The w
 **For any of this to actually shape her turn, the SillyTavern character card description must be empty.** Identity gets resolved each turn in this order:
 
 1. The ST character card description, if filled in → wins, every time
-2. Otherwise: her stored `narrative_self` from `memu_self_model`
+2. Otherwise: her stored `narrative_self` from `narrative_history`
 3. Otherwise: a generic default ("You are {name}…")
 
 So if you write a character description in ST, that's who she is — her own self-model never reaches the prompt. Leave the description empty and she'll use what consolidation (and your suggestions) have built up.
@@ -169,7 +171,7 @@ So if you write a character description in ST, that's who she is — her own sel
 
 ## Things to know
 
-**One soul = one conversation.** Each `soul_id` is bound to a single conversation. If you want two parallel personalities (e.g., a partner *and* a separate research assistant), spin up two souls with two different `soul_id` values. They get isolated memory stores.
+**One soul = one memory store, many chats.** Each `soul_id` has its own memory database. You can have multiple SillyTavern chats with the same soul — each chat memorizes independently (own cursor, own manifest), and retrieval pulls from all of them. If you want two separate personalities (e.g., a partner *and* a research assistant), use two different `soul_id` values — they get isolated memory stores.
 
 **Where the data lives.** All memory state is in a SQLite file at the path you set in `storage.metadata_store.dsn` (per soul, by default — check the path you wrote in `config.json`). To back up your companion, copy that file. To start fresh, delete it.
 
