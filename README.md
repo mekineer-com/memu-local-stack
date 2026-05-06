@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-05-01_
+_Last updated: 2026-05-06_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -82,6 +82,7 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match **all four rep
 | `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
 | `v0.0.8-buildfix` | Consolidation pipeline, entity graph + temporal queries, life goals, APImw edge writing |
 | `v0.0.9-buildfix` | Narrative Suggestion end-to-end; turn-prompt length caps + stateless chat_x; triple write-time dedup + symmetric canonicalization; consolidation reads day-files (drops full.json dependency); category config rename; lorebook sync + extension Memory bubble checkboxes |
+| `v0.0.10-buildfix` | Memorize Now works (tail mode); cross-conversation memorize; SPEAK/LISTEN gate; Hermes integration; Park et al. salience scoring; schema rename (dropped memu_ prefix); Postgres removed; relative date separators; upstream prompt cleanup |
 
 ---
 
