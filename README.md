@@ -61,7 +61,7 @@ SillyTavern
 
 Memory extraction happens during **sleep gaps** — when you close a conversation and come back later (≥3 hours with overlap in a 22:00–08:00 window). The system reads what you talked about, pulls out what matters, and stores it. Relevant memories are then automatically included in the next turn so the AI already knows them.
 
-**If you never leave the conversation, nothing gets memorized automatically.** The system waits for a sleep gap before extracting. The "Memorize Now" button is intended to force extraction of the current tail without waiting, but currently does not work — it still requires sleep-gap segments to exist. For now, close the conversation and come back to trigger memorize.
+**If you never leave the conversation, nothing gets memorized automatically** — the system waits for a sleep gap before extracting. You can also click **Memorize Now** to extract the current conversation tail without waiting for a sleep gap.
 
 ---
 
@@ -126,8 +126,8 @@ Questions? Open an issue on the relevant repo.
 
 | Control | Location | What it does |
 |---------|----------|--------------|
-| **Memorize Now** button | memU extension panel | Intended to force extraction of the current tail. **Currently broken:** sends `force=true` to the server, which resets the cursor but still requires sleep-gap segments — so it does nothing on a conversation without qualifying gaps. |
-| **Re-memorize chat** | SillyTavern's chat options menu (the rotate-left icon) | Wipes client-side progress and lorebooks, then sends `force=true` — re-extracts all existing sleep-gap segments from the beginning. Use after schema changes or if extraction looked wrong. Same sleep-gap requirement as Memorize Now. |
+| **Memorize Now** button | memU extension panel | Extracts the current conversation tail (everything after the last memorized point) without waiting for a sleep gap. Sends `tail=true` to the server. Disabled when no character is selected. |
+| **Re-memorize chat** | SillyTavern's chat options menu (the rotate-left icon) | Wipes client-side progress and lorebooks, then sends `force=true` — resets the cursor and re-extracts all segments from the beginning. Use after schema changes or if extraction looked wrong. |
 | **Eye icon** (👁) | memU extension drawer header, next to the memU logo | Opens a memory inspector. Categories show as memU lorebooks, each containing the items the soul has stored under that category. |
 | **Narrative Suggestion** input | memU panel, under the Memorize Now button | Sends the soul a suggested revision of her `narrative_self`. See below. |
 
