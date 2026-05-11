@@ -4,11 +4,15 @@
   <meta charset="utf-8">
   <title>Logs — {{ label }}</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 100%; margin: 1rem 1.5rem; color: #1a1a1a; }
-    pre { background: #111; color: #ddd; padding: 1rem; border-radius: 4px; white-space: pre-wrap; word-break: break-word; font-size: 0.85rem; line-height: 1.4; }
+    :root { color-scheme: dark; }
+    body { font-family: system-ui, sans-serif; max-width: 100%; margin: 1rem 1.5rem;
+           background: #181818; color: #ddd; }
+    pre { background: #0d0d0d; color: #ddd; padding: 1rem; border: 1px solid #2a2a2a; border-radius: 4px;
+          white-space: pre-wrap; word-break: break-word; font-size: 0.85rem; line-height: 1.4; }
     .head { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
-    .head a { font-size: 0.95rem; }
-    code { background: #f1f1f1; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
+    .head a { font-size: 0.95rem; color: #7cb7ff; }
+    .head strong { color: #f0f0f0; }
+    code { background: #2a2a2a; color: #f0f0f0; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
   </style>
 </head>
 <body>
