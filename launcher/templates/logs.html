@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Logs — {{ label }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 100%; margin: 1rem 1.5rem; color: #1a1a1a; }
+    pre { background: #111; color: #ddd; padding: 1rem; border-radius: 4px; white-space: pre-wrap; word-break: break-word; font-size: 0.85rem; line-height: 1.4; }
+    .head { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .head a { font-size: 0.95rem; }
+    code { background: #f1f1f1; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <a href="/">← back</a>
+    <strong>{{ label }}</strong>
+    <span>last {{ lines }} lines</span>
+    <code>{{ log_path }}</code>
+  </div>
+  <pre>{{ content }}</pre>
+</body>
+</html>

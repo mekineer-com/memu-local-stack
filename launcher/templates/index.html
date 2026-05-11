@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>memU Stack</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; color: #1a1a1a; }
+    h1 { margin: 0 0 0.5rem 0; }
+    h2 { border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; margin-top: 2rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.4rem 0.6rem; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
+    th { font-weight: 600; background: #fafafa; }
+    .running { color: #0f6f38; font-weight: 600; }
+    .stopped { color: #9a1d1d; }
+    .btn { padding: 0.3rem 0.7rem; font: inherit; cursor: pointer; }
+    form.inline { display: inline; margin: 0; }
+    select { font: inherit; padding: 0.15rem 0.25rem; }
+    code { background: #f1f1f1; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
+    .tight li { margin: 0.3rem 0; }
+    .term-toggle { margin-right: 0.5rem; font-size: 0.9em; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>memU Stack</h1>
+  <p style="color:#666">Start, stop, and configure the local stack.</p>
+
+  <h2>Services</h2>
+  <table>
+    <thead>
+      <tr><th>Service</th><th>Status</th><th>Actions</th><th>Logs</th></tr>
+    </thead>
+    <tbody>
+      {% for s in services %}
+      <tr>
+        <td>{{ s.label }}</td>
+        <td>
+          {% if s.running %}<span class="running">● running</span>{% else %}<span class="stopped">○ stopped</span>{% endif %}
+        </td>
+        <td>
+          {% if s.running %}
+          <form class="inline" method="post" action="/service/{{ s.name }}/stop">
+            <button class="btn" type="submit">Stop</button>
+          </form>
+          {% else %}
+          <form class="inline" method="post" action="/service/{{ s.name }}/start">
+            {% if s.supports_terminal %}
+              <label class="term-toggle"><input type="checkbox" name="show_terminal" value="1"> show terminal</label>
+            {% endif %}
+            <button class="btn" type="submit">Start</button>
+          </form>
+          {% endif %}
+        </td>
+        <td><a href="/logs/{{ s.name }}">view</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Edit configs</h2>
+  <p style="color:#666">Opens in your default editor.</p>
+  <ul class="tight">
+    {% for c in editable_configs %}
+      <li>
+        <form class="inline" method="post" action="/edit/{{ c.key }}">
+          <button class="btn" type="submit">Open</button>
+        </form>
+        &nbsp;{{ c.label }} &nbsp;<code>{{ c.path }}</code>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h2>WhatsApp channel policy</h2>
+  {% if chats %}
+  <p style="color:#666">
+    <strong>full</strong> — soul responds and remembers.
+    <strong>listen_only</strong> — message is stored, soul stays silent.
+    <strong>excluded</strong> — Hermes drops the message entirely.
+  </p>
+  <form method="post" action="/policy">
+    <table>
+      <thead>
+        <tr><th>Chat</th><th>Type</th><th>ID</th><th>Policy</th></tr>
+      </thead>
+      <tbody>
+        {% for c in chats %}
+        <tr>
+          <td>{{ c.name or '(unnamed)' }}</td>
+          <td>{{ c.type }}</td>
+          <td><code>{{ c.id }}</code></td>
+          <td>
+            <select name="policy[{{ c.id }}]">
+              {% for p in policies %}
+                <option value="{{ p }}" {% if c.policy == p %}selected{% endif %}>{{ p }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p><button class="btn" type="submit">Save policies</button></p>
+  </form>
+  {% else %}
+    <p><em>No WhatsApp chats in <code>~/.hermes/channel_directory.json</code> yet.</em></p>
+  {% endif %}
+</body>
+</html>
