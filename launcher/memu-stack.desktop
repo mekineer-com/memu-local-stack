@@ -6,4 +6,4 @@ Comment=Control center for the memU local stack
 Exec=/home/marcos/apps-codex/memu-local-stack/launcher/.venv/bin/python /home/marcos/apps-codex/memu-local-stack/launcher/run.py
 Path=/home/marcos/apps-codex/memu-local-stack/launcher
 Terminal=false
-Categories=Utility;Network;
+Categories=Utility;
