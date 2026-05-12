@@ -2,15 +2,45 @@
 from __future__ import annotations
 
 import json
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Literal
 
 HERMES_HOME = Path.home() / ".hermes"
 DIRECTORY_PATH = HERMES_HOME / "channel_directory.json"
 POLICY_PATH = HERMES_HOME / "memu.json"
+BRIDGE_BASE_URL = "http://127.0.0.1:3000"
 
 Policy = Literal["full", "listen_only", "excluded"]
 ALL_POLICIES: tuple[Policy, ...] = ("full", "listen_only", "excluded")
+
+
+def _fetch_group_subject(chat_id: str, *, timeout: float = 1.5) -> str:
+    """Ask the WhatsApp bridge for a group's display subject.
+
+    The channel_directory builder writes the raw chat id as the group
+    `name` when it can't resolve a subject from session history. The
+    bridge's ``/chat/<id>`` endpoint calls ``sock.groupMetadata(id)``
+    live, which is the only path that returns the user-visible group
+    name (e.g. "Familia"). Returns "" on any failure so the UI falls
+    back to the directory's raw name.
+    """
+    if not chat_id:
+        return ""
+    encoded = urllib.request.quote(chat_id, safe="")
+    url = f"{BRIDGE_BASE_URL}/chat/{encoded}"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            if resp.status != 200:
+                return ""
+            payload = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, OSError, json.JSONDecodeError, ValueError):
+        return ""
+    if not isinstance(payload, dict):
+        return ""
+    name = payload.get("name")
+    return str(name).strip() if isinstance(name, str) else ""
 
 
 def list_whatsapp_chats() -> list[dict]:
@@ -20,7 +50,28 @@ def list_whatsapp_chats() -> list[dict]:
         return []
     platforms = data.get("platforms") if isinstance(data, dict) else None
     whatsapp = platforms.get("whatsapp") if isinstance(platforms, dict) else None
-    return whatsapp if isinstance(whatsapp, list) else []
+    if not isinstance(whatsapp, list):
+        return []
+    # Enrich group entries that came in with name == id (the directory
+    # builder fell back to the raw id) by asking the bridge for the
+    # actual subject. DM names are already populated by the directory.
+    enriched: list[dict] = []
+    for chat in whatsapp:
+        if not isinstance(chat, dict):
+            continue
+        chat_id = str(chat.get("id") or "").strip()
+        name = str(chat.get("name") or "").strip()
+        # The directory builder writes the bare id (no @g.us suffix) as the
+        # group `name` when it can't resolve a subject from session history.
+        chat_id_bare = chat_id.split("@", 1)[0]
+        if str(chat.get("type") or "") == "group" and chat_id and (
+            not name or name == chat_id or name == chat_id_bare
+        ):
+            subject = _fetch_group_subject(chat_id)
+            if subject:
+                chat = {**chat, "name": subject}
+        enriched.append(chat)
+    return enriched
 
 
 def read_policies() -> dict[str, Policy]:
