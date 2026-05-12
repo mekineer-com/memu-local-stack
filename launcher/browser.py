@@ -109,7 +109,7 @@ def _ensure_default_zoom_level() -> None:
         return
 
 
-def open_app(url: str, *, width: int = 760, height: int = 900) -> subprocess.Popen | None:
+def open_app(url: str, *, width: int = 600, height: int = 740) -> subprocess.Popen | None:
     """Open the launcher UI in a chromeless app window sized to the column.
 
     Uses a dedicated ``--user-data-dir`` so Chrome treats this as a
