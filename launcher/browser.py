@@ -109,53 +109,12 @@ def _ensure_default_zoom_level() -> None:
         return
 
 
-def _saved_window_size() -> tuple[int, int] | None:
-    """Read the last app-window dimensions from chromium's saved placement.
-
-    Chromium records app-window position/size under
-    ``browser.app_window_placement`` in the profile's ``Preferences``
-    file, keyed by a per-app path (host + url). The structure is a
-    nested dict whose leaves carry ``left/right/top/bottom`` integers.
-    We walk the tree, find a leaf, and return (width, height).
-    """
-    try:
-        data = json.loads(_PROFILE_PREFS.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-
-    def _find_leaf(node: object) -> tuple[int, int] | None:
-        if not isinstance(node, dict):
-            return None
-        if all(k in node for k in ("left", "right", "top", "bottom")):
-            try:
-                w = int(node["right"]) - int(node["left"])
-                h = int(node["bottom"]) - int(node["top"])
-            except (TypeError, ValueError):
-                return None
-            if w > 0 and h > 0:
-                return (w, h)
-        for value in node.values():
-            result = _find_leaf(value)
-            if result is not None:
-                return result
-        return None
-
-    browser_node = data.get("browser") if isinstance(data, dict) else None
-    placements = browser_node.get("app_window_placement") if isinstance(browser_node, dict) else None
-    return _find_leaf(placements)
-
-
-def open_app(url: str, *, width: int = 574, height: int = 740) -> subprocess.Popen | None:
-    """Open the launcher UI in a chromeless app window.
+def open_app(url: str, *, width: int = 760, height: int = 900) -> subprocess.Popen | None:
+    """Open the launcher UI in a chromeless app window sized to the column.
 
     Uses a dedicated ``--user-data-dir`` so Chrome treats this as a
     separate instance (not a second window of the user's running
     browser). That is the only way ``--window-size`` actually applies.
-
-    Each launch passes ``--window-size`` explicitly, but the size is
-    taken from chromium's own saved placement when it exists — so
-    user-driven resizes carry over. First run (or empty profile)
-    seeds the default ``width × height``.
 
     Returns the chromium ``Popen`` object so the caller can watch it
     and quit the launcher when the window is closed. Returns ``None``
@@ -163,9 +122,6 @@ def open_app(url: str, *, width: int = 574, height: int = 740) -> subprocess.Pop
     """
     chromium = find_chromium()
     if chromium:
-        saved = _saved_window_size()
-        if saved is not None:
-            width, height = saved
         _PROFILE_DIR.mkdir(parents=True, exist_ok=True)
         _ensure_default_zoom_level()
         return subprocess.Popen(
