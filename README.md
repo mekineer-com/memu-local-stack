@@ -190,6 +190,8 @@ So if you write a character description in ST, that's who she is — her own sel
 
 **Additional procedural-memory domains** — the `mental_health` domain is live (see Mental Health Addon checkbox above). The architecture supports more curated knowledge bases. Next candidate: `tool-use` — how the soul has learned to use external tools, extracted from experience.
 
+**Stack launcher** — a local web UI (`launcher/`) for managing all four services (start/stop/logs), editing configs, and setting per-chat WhatsApp channel policies. Available at `http://127.0.0.1:8765` with a `.desktop` shortcut.
+
 **PicoClaw** — an autonomous soul loop: the companion acts between conversations, pursuing her own intentions rather than sitting idle.
 
 ---
