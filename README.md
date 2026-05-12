@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-05-06_
+_Last updated: 2026-05-12_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -95,6 +95,26 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match **all four rep
 - An API key for an LLM provider — OpenAI, NanoGPT, or any compatible endpoint
 - SillyTavern already installed, if you're using the SillyTavern integration
 
+**Recommended layout**
+
+Clone all four repos as siblings under one parent directory:
+
+```
+~/stack/                          # any name; this is the "apps root"
+├── mcp-memu-server/
+├── memU/                         # cloned as "memu/" or "memU/" — engine
+├── hermes-agent/                 # optional; only if using Hermes integration
+└── memu-local-stack/             # this repo (docs + launcher)
+```
+
+The Stack launcher (see *What's coming*) walks up from its own directory
+to find this layout automatically, so no path configuration is needed
+when the repos sit side-by-side. If your layout differs, the launcher's
+`/settings` page lets you point at the parent directory explicitly.
+
+SillyTavern lives elsewhere (it's a full app, not a sibling). The plugin
+and extension below get installed *inside* the SillyTavern tree.
+
 **Set up in this order**
 
 1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service everything else talks to. Copy `config.example.json` → `config.json`, set your API key, and start it. Runs on port 8099.
@@ -186,11 +206,22 @@ So if you write a character description in ST, that's who she is — her own sel
 
 ---
 
+## Stack launcher
+
+A local web UI for managing the full stack. Lives in `launcher/` in this repo.
+
+- **Services panel** — start, stop, and view logs for mcp-memu-server, Hermes gateway, WhatsApp bridge, and SillyTavern. Detects externally-started services and adopts them.
+- **Settings page** — edit configs (server `config.json`, Hermes `config.yaml`, Hermes persona `SOUL.md`). Auto-detects the apps-root directory from sibling repo layout; override on the settings page if your layout differs.
+- **WhatsApp channel policy** — per-chat policy editor (reads `~/.hermes/channel_directory.json`, writes `~/.hermes/memu.json`).
+- **Logs viewer** — tail logs for any managed service.
+
+Runs at `http://127.0.0.1:8765`. Start-menu shortcut installed as `memu-stack.desktop`. Opens in a Chromium app window (falls back to default browser).
+
+---
+
 ## What's coming
 
 **Additional procedural-memory domains** — the `mental_health` domain is live (see Mental Health Addon checkbox above). The architecture supports more curated knowledge bases. Next candidate: `tool-use` — how the soul has learned to use external tools, extracted from experience.
-
-**Stack launcher** — a local web UI (`launcher/`) for managing all four services (start/stop/logs), editing configs, and setting per-chat WhatsApp channel policies. Available at `http://127.0.0.1:8765` with a `.desktop` shortcut.
 
 **PicoClaw** — an autonomous soul loop: the companion acts between conversations, pursuing her own intentions rather than sitting idle.
 
