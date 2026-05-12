@@ -109,12 +109,34 @@ def _ensure_default_zoom_level() -> None:
         return
 
 
-def open_app(url: str, *, width: int = 760, height: int = 900) -> subprocess.Popen | None:
-    """Open the launcher UI in a chromeless app window sized to the column.
+def _has_saved_window_placement() -> bool:
+    """True if Chromium has already remembered an app-window size/position.
+
+    Chromium stores app-window dimensions under
+    ``browser.app_window_placement`` in the profile's ``Preferences``
+    file. Once that key exists, subsequent launches respect the saved
+    size and ``--window-size`` would override what the user resized to.
+    """
+    try:
+        data = json.loads(_PROFILE_PREFS.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    browser_node = data.get("browser") if isinstance(data, dict) else None
+    placements = browser_node.get("app_window_placement") if isinstance(browser_node, dict) else None
+    return isinstance(placements, dict) and bool(placements)
+
+
+def open_app(url: str, *, width: int = 574, height: int = 740) -> subprocess.Popen | None:
+    """Open the launcher UI in a chromeless app window.
 
     Uses a dedicated ``--user-data-dir`` so Chrome treats this as a
     separate instance (not a second window of the user's running
     browser). That is the only way ``--window-size`` actually applies.
+
+    On the first run (no saved app-window placement in the profile),
+    seeds the window at ``width × height``. On later runs, omits
+    ``--window-size`` so Chromium restores whatever size the user
+    resized to last time.
 
     Returns the chromium ``Popen`` object so the caller can watch it
     and quit the launcher when the window is closed. Returns ``None``
@@ -122,18 +144,18 @@ def open_app(url: str, *, width: int = 760, height: int = 900) -> subprocess.Pop
     """
     chromium = find_chromium()
     if chromium:
+        has_saved = _has_saved_window_placement()
         _PROFILE_DIR.mkdir(parents=True, exist_ok=True)
         _ensure_default_zoom_level()
-        return subprocess.Popen(
-            [
-                chromium,
-                f"--app={url}",
-                f"--window-size={int(width)},{int(height)}",
-                f"--user-data-dir={_PROFILE_DIR}",
-                "--no-first-run",
-                "--no-default-browser-check",
-            ],
-            start_new_session=True,
-        )
+        cmd = [
+            chromium,
+            f"--app={url}",
+            f"--user-data-dir={_PROFILE_DIR}",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ]
+        if not has_saved:
+            cmd.insert(2, f"--window-size={int(width)},{int(height)}")
+        return subprocess.Popen(cmd, start_new_session=True)
     webbrowser.open(url)
     return None
