@@ -30,6 +30,7 @@ _PROFILE_DIR = Path.home() / ".cache" / "memu-stack-launcher" / "chrome-profile"
 _PROFILE_PREFS = _PROFILE_DIR / "Default" / "Preferences"
 _ZOOM_HOSTS = ("127.0.0.1", "localhost")
 _DEFAULT_ZOOM_PERCENT = 75.0
+_DEFAULT_PARTITION_KEY = "x"
 
 
 def find_chromium() -> str | None:
@@ -74,16 +75,30 @@ def _ensure_default_zoom_level() -> None:
     if not isinstance(partition, dict):
         return
 
-    existing_default = partition.get("default_zoom_level")
-    if isinstance(existing_default, (int, float)):
-        return
-
     per_host = partition.get("per_host_zoom_levels")
     host_zoom = _scan_host_zoom_levels(per_host)
     if host_zoom is None:
         host_zoom = _zoom_percent_to_level(_DEFAULT_ZOOM_PERCENT)
 
-    partition["default_zoom_level"] = host_zoom
+    existing_default = partition.get("default_zoom_level")
+    if isinstance(existing_default, dict):
+        # Partitioned shape seen in this profile family.
+        current = existing_default.get(_DEFAULT_PARTITION_KEY)
+        if isinstance(current, (int, float)) and float(current) == host_zoom:
+            return
+        existing_default[_DEFAULT_PARTITION_KEY] = host_zoom
+        partition["default_zoom_level"] = existing_default
+    elif isinstance(existing_default, (int, float)):
+        # Migrate legacy scalar shape to Chromium's partitioned dictionary
+        # format used by kPartitionDefaultZoomLevel.
+        if float(existing_default) == host_zoom:
+            partition["default_zoom_level"] = {_DEFAULT_PARTITION_KEY: host_zoom}
+        else:
+            partition["default_zoom_level"] = {_DEFAULT_PARTITION_KEY: host_zoom}
+    else:
+        # Prefer partitioned default to match per_host_zoom_levels shape.
+        partition["default_zoom_level"] = {_DEFAULT_PARTITION_KEY: host_zoom}
+
     payload["partition"] = partition
     try:
         _PROFILE_PREFS.write_text(
