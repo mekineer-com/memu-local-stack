@@ -5,7 +5,7 @@
   <title>memU Stack</title>
   <style>
     :root { color-scheme: dark; }
-    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem;
+    body { font-family: system-ui, sans-serif; margin: 1.5rem 0; padding: 0 20px;
            background: #181818; color: #ddd; }
     h1 { margin: 0 0 0.5rem 0; color: #f0f0f0; }
     h2 { border-bottom: 1px solid #333; padding-bottom: 0.3rem; margin-top: 2rem; color: #f0f0f0; }
@@ -18,14 +18,26 @@
     .btn { padding: 0.3rem 0.7rem; font: inherit; cursor: pointer;
            background: #2a2a2a; color: #eee; border: 1px solid #444; border-radius: 3px; }
     .btn:hover { background: #353535; border-color: #555; }
+    .btn:disabled { opacity: 0.7; cursor: progress; }
     form.inline { display: inline; margin: 0; }
     select { font: inherit; padding: 0.15rem 0.25rem; background: #2a2a2a; color: #eee; border: 1px solid #444; }
     a { color: #7cb7ff; }
     a:visited { color: #b18cd9; }
     code { background: #2a2a2a; color: #f0f0f0; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
     .tight li { margin: 0.3rem 0; }
-    .term-toggle { margin-right: 0.5rem; font-size: 0.9em; color: #aaa; }
+    .term-toggle { margin-left: 0.5rem; font-size: 0.9em; color: #aaa; }
     .term-toggle input { accent-color: #6aa9ff; }
+    .spinner {
+      display: inline-block;
+      width: 0.85em;
+      height: 0.85em;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -46,15 +58,16 @@
         </td>
         <td>
           {% if s.running %}
-          <form class="inline" method="post" action="/service/{{ s.name }}/stop">
+          <form class="inline" method="post" action="/service/{{ s.name }}/stop"
+                onsubmit="var b=this.querySelector('button'); setTimeout(function(){ b.innerHTML='<span class=\'spinner\'></span>'; b.disabled=true; }, 0);">
             <button class="btn" type="submit">Stop</button>
           </form>
           {% else %}
           <form class="inline" method="post" action="/service/{{ s.name }}/start">
+            <button class="btn" type="submit">Start</button>
             {% if s.supports_terminal %}
               <label class="term-toggle"><input type="checkbox" name="show_terminal" value="1"> show terminal</label>
             {% endif %}
-            <button class="btn" type="submit">Start</button>
           </form>
           {% endif %}
         </td>
