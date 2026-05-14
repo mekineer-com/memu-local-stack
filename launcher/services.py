@@ -171,7 +171,26 @@ def is_running(spec: ServiceSpec) -> bool:
     _adopt(spec)
     pid = _read_pid(spec.pid_path)
     if pid is not None and _is_alive(pid):
+        # For port-bound services, trust the listener state over bare PID liveness.
+        # A stale/zombie PID can remain "alive" briefly after shutdown while the
+        # port is already free, which should be shown as stopped in the UI.
+        if spec.port is not None:
+            listener_pid = _port_listener_pid(spec.port)
+            if listener_pid is None:
+                _clear_pid(spec)
+                return False
+            if listener_pid != pid:
+                spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
+                spec.pid_path.write_text(str(listener_pid))
         return True
+
+    if spec.port is not None:
+        listener_pid = _port_listener_pid(spec.port)
+        if listener_pid is not None and _is_alive(listener_pid):
+            spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
+            spec.pid_path.write_text(str(listener_pid))
+            return True
+
     _clear_pid(spec)
     return False
 
@@ -211,6 +230,8 @@ def stop(spec: ServiceSpec, *, timeout: float = 10.0) -> None:
     deadline = time.time() + timeout
     while time.time() < deadline:
         if not _is_alive(pid):
+            break
+        if spec.port is not None and _port_listener_pid(spec.port) is None:
             break
         time.sleep(0.1)
     else:
