@@ -231,7 +231,15 @@ def stop(spec: ServiceSpec, *, timeout: float = 10.0) -> None:
     while time.time() < deadline:
         if not _is_alive(pid):
             break
-        if spec.port is not None and _port_listener_pid(spec.port) is None:
+        # If a service has its own external pidfile contract (for example
+        # mcp-memu-server's single-instance guard), we must wait for process exit
+        # before returning; otherwise an immediate restart can be rejected even
+        # though the port is already free.
+        if (
+            spec.adopt_pid_path is None
+            and spec.port is not None
+            and _port_listener_pid(spec.port) is None
+        ):
             break
         time.sleep(0.1)
     else:
