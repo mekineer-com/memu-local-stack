@@ -106,7 +106,7 @@ def all_services() -> list[ServiceSpec]:
             log_path=STATE_DIR / "sillytavern.log",
             pid_path=STATE_DIR / "sillytavern.pid",
             supports_terminal=True,
-            port=8000,
+            port=8001,
         ),
     ]
 
