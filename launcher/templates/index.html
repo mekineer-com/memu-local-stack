@@ -74,24 +74,19 @@
     </thead>
     <tbody>
       {% for s in services %}
-      <tr>
+      <tr data-service="{{ s.name }}">
         <td>{{ s.label }}</td>
-        <td>
+        <td class="svc-status">
           {% if s.running %}<span class="running">● running</span>{% else %}<span class="stopped">○ stopped</span>{% endif %}
         </td>
-        <td>
+        <td class="svc-actions">
           {% if s.running %}
-          <form class="inline" method="post" action="/service/{{ s.name }}/stop"
-                onsubmit="var b=this.querySelector('button'); setTimeout(function(){ b.innerHTML='<span class=\'spinner\'></span>'; b.disabled=true; }, 0);">
-            <button class="btn" type="submit">Stop</button>
-          </form>
+            <button class="btn" onclick="svcAction('{{ s.name }}','stop',this)">Stop</button>
           {% else %}
-          <form class="inline" method="post" action="/service/{{ s.name }}/start">
-            <button class="btn" type="submit">Start</button>
+            <button class="btn" onclick="svcAction('{{ s.name }}','start',this)">Start</button>
             {% if s.supports_terminal %}
-              <label class="term-toggle"><input type="checkbox" name="show_terminal" value="1"> show terminal</label>
+              <label class="term-toggle"><input type="checkbox" id="term-{{ s.name }}" value="1"> show terminal</label>
             {% endif %}
-          </form>
           {% endif %}
         </td>
         <td><a href="/logs/{{ s.name }}">view</a></td>
@@ -147,5 +142,44 @@
   {% else %}
     <p><em>No WhatsApp chats in <code>~/.hermes/channel_directory.json</code> yet.</em></p>
   {% endif %}
+
+<script>
+function svcAction(name, action, btn) {
+  var row = btn.closest('tr');
+  var statusCell = row.querySelector('.svc-status');
+  var actionsCell = row.querySelector('.svc-actions');
+  var origHtml = actionsCell.innerHTML;
+  actionsCell.innerHTML = '<span class="spinner"></span>';
+  statusCell.innerHTML = '<span class="muted">…</span>';
+
+  var body = new URLSearchParams();
+  if (action === 'start') {
+    var cb = document.getElementById('term-' + name);
+    if (cb && cb.checked) body.append('show_terminal', '1');
+  }
+  fetch('/service/' + name + '/' + action, {method: 'POST', body: body})
+    .then(function(r) { return r.json(); })
+    .then(function() { pollStatus(name); })
+    .catch(function() { location.reload(); });
+}
+
+function pollStatus(name) {
+  fetch('/service/' + name + '/status')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var row = document.querySelector('tr[data-service="' + name + '"]');
+      var statusCell = row.querySelector('.svc-status');
+      var actionsCell = row.querySelector('.svc-actions');
+      if (data.running) {
+        statusCell.innerHTML = '<span class="running">● running</span>';
+        actionsCell.innerHTML = '<button class="btn" onclick="svcAction(\'' + name + '\',\'stop\',this)">Stop</button>';
+      } else {
+        statusCell.innerHTML = '<span class="stopped">○ stopped</span>';
+        actionsCell.innerHTML = '<button class="btn" onclick="svcAction(\'' + name + '\',\'start\',this)">Start</button>';
+      }
+    })
+    .catch(function() { location.reload(); });
+}
+</script>
 </body>
 </html>

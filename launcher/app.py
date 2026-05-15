@@ -137,17 +137,23 @@ def logs(request: Request, service_name: str, lines: int = 200) -> HTMLResponse:
 def service_start(
     service_name: str,
     show_terminal: str = Form(default=""),
-) -> RedirectResponse:
+) -> dict:
     spec = _find_service(service_name)
     services.start(spec, show_terminal=bool(show_terminal))
-    return RedirectResponse("/", status_code=303)
+    return {"ok": True, "running": services.is_running(spec)}
 
 
 @app.post("/service/{service_name}/stop")
-def service_stop(service_name: str) -> RedirectResponse:
+def service_stop(service_name: str) -> dict:
     spec = _find_service(service_name)
     services.stop(spec)
-    return RedirectResponse("/", status_code=303)
+    return {"ok": True, "running": services.is_running(spec)}
+
+
+@app.get("/service/{service_name}/status")
+def service_status(service_name: str) -> dict:
+    spec = _find_service(service_name)
+    return {"running": services.is_running(spec)}
 
 
 @app.post("/policy")

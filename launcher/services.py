@@ -189,16 +189,13 @@ def _is_alive(pid: int) -> bool:
 def _matches_service_process(spec: ServiceSpec, pid: int) -> bool:
     cmd = _proc_cmdline(pid).lower()
     cwd = _proc_cwd(pid)
-    if cwd is None:
-        return False
-    if cwd != spec.cwd:
-        return False
+    cwd_matches = cwd is not None and cwd == spec.cwd
     if spec.name == "memu-server":
-        return "run.py" in cmd or ("uvicorn" in cmd and "app.main:app" in cmd)
+        return cwd_matches and ("run.py" in cmd or ("uvicorn" in cmd and "app.main:app" in cmd))
     if spec.name == "hermes-gateway":
-        return "gateway.run" in cmd
+        return cwd_matches and "gateway.run" in cmd
     if spec.name == "whatsapp-bridge":
-        return "bridge.js" in cmd
+        return cwd_matches and "bridge.js" in cmd
     if spec.name == "sillytavern":
         return "server.js" in cmd or "start.sh" in cmd
     return False
