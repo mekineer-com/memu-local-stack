@@ -11,6 +11,7 @@ HERMES_HOME = Path.home() / ".hermes"
 DIRECTORY_PATH = HERMES_HOME / "channel_directory.json"
 POLICY_PATH = HERMES_HOME / "memu.json"
 CREDS_PATH = HERMES_HOME / "whatsapp" / "session" / "creds.json"
+GROUP_NAME_CACHE_PATH = HERMES_HOME / "whatsapp_group_names.json"
 BRIDGE_BASE_URL = "http://127.0.0.1:3000"
 
 Policy = Literal["full", "listen_only", "excluded"]
@@ -85,6 +86,37 @@ def _fetch_group_subject(chat_id: str, *, timeout: float = 1.5) -> str:
     return str(name).strip() if isinstance(name, str) else ""
 
 
+def _load_group_name_cache() -> dict[str, str]:
+    """Load persisted WhatsApp group names keyed by chat id."""
+    try:
+        raw = json.loads(GROUP_NAME_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, value in raw.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            continue
+        chat_id = key.strip()
+        name = value.strip()
+        if chat_id and name:
+            out[chat_id] = name
+    return out
+
+
+def _write_group_name_cache(cache: dict[str, str]) -> None:
+    """Persist normalized group names; ignore write errors in launcher UI."""
+    try:
+        GROUP_NAME_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        GROUP_NAME_CACHE_PATH.write_text(
+            json.dumps(cache, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        return
+
+
 def list_whatsapp_chats() -> list[dict]:
     try:
         data = json.loads(DIRECTORY_PATH.read_text(encoding="utf-8"))
@@ -96,6 +128,8 @@ def list_whatsapp_chats() -> list[dict]:
         return []
 
     self_ids = _self_identifiers()
+    group_name_cache = _load_group_name_cache()
+    cache_changed = False
     self_kept: dict | None = None  # First (preferably named) entry that is the human.
     enriched: list[dict] = []
     for chat in whatsapp:
@@ -103,17 +137,29 @@ def list_whatsapp_chats() -> list[dict]:
             continue
         chat_id = str(chat.get("id") or "").strip()
         name = str(chat.get("name") or "").strip()
+        is_group = str(chat.get("type") or "") == "group"
         # Enrich group names that came in as the raw id (the directory
         # builder fell back when no subject was available in session
         # history). DM names are already populated by the directory.
         chat_id_bare = chat_id.split("@", 1)[0]
-        if str(chat.get("type") or "") == "group" and chat_id and (
+        if is_group and chat_id and (
             not name or name == chat_id or name == chat_id_bare
         ):
             subject = _fetch_group_subject(chat_id)
+            if not subject:
+                subject = group_name_cache.get(chat_id, "")
             if subject:
                 chat = {**chat, "name": subject}
                 name = subject
+                if group_name_cache.get(chat_id) != subject:
+                    group_name_cache[chat_id] = subject
+                    cache_changed = True
+        elif is_group and chat_id and name and name != chat_id and name != chat_id_bare:
+            # Keep a stable local name source for future launcher loads when
+            # bridge metadata is temporarily unavailable.
+            if group_name_cache.get(chat_id) != name:
+                group_name_cache[chat_id] = name
+                cache_changed = True
 
         # Collapse the human's two WhatsApp identities (phone JID + LID)
         # into a single row. Keep the entry whose directory name isn't a
@@ -135,6 +181,9 @@ def list_whatsapp_chats() -> list[dict]:
         if not kept_name or _looks_like_raw_id(kept_name):
             self_kept = {**self_kept, "name": "you"}
         enriched.insert(0, self_kept)
+
+    if cache_changed:
+        _write_group_name_cache(group_name_cache)
 
     return enriched
 
