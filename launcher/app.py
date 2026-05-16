@@ -56,13 +56,14 @@ def index(request: Request) -> HTMLResponse:
         for s in specs
     ]
     chats = policy.list_whatsapp_chats()
-    current = policy.read_policies()
+    current = policy.read_channel_settings()
     chat_rows = [
         {
             "id": str(c.get("id", "")),
             "name": str(c.get("name", "")),
             "type": str(c.get("type", "")),
-            "policy": current.get(str(c.get("id", "")), "full"),
+            "policy": str(current.get(str(c.get("id", "")), {}).get("policy") or "full"),
+            "memorize": bool(current.get(str(c.get("id", "")), {}).get("memorize", True)),
         }
         for c in chats
     ]
@@ -159,14 +160,18 @@ def service_status(service_name: str) -> dict:
 @app.post("/policy")
 async def policy_save(request: Request) -> RedirectResponse:
     form = await request.form()
-    updates: dict[str, str] = {}
+    updates: dict[str, dict[str, bool | str]] = {}
     for key, val in form.items():
         if isinstance(key, str) and key.startswith("policy[") and key.endswith("]"):
             chat_id = key[len("policy["):-1]
             if val in policy.ALL_POLICIES:
-                updates[chat_id] = val  # type: ignore[assignment]
+                memorize = f"memorize[{chat_id}]" in form
+                updates[chat_id] = {
+                    "policy": val,
+                    "memorize": memorize,
+                }
     if updates:
-        policy.write_policies(updates)  # type: ignore[arg-type]
+        policy.write_channel_settings(updates)
     return RedirectResponse("/", status_code=303)
 
 

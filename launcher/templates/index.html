@@ -114,11 +114,12 @@
     <strong>full</strong> — soul responds and remembers.
     <strong>listen_only</strong> — message is stored, soul stays silent.
     <strong>excluded</strong> — Hermes drops the message entirely.
+    <strong>Mem</strong> — include this chat in memory extraction; unchecked chats stay as context-only during memorize.
   </p>
   <form method="post" action="/policy">
     <table>
       <thead>
-        <tr><th>Chat</th><th>Type</th><th>ID</th><th>Policy</th></tr>
+        <tr><th>Chat</th><th>Type</th><th>ID</th><th>Policy</th><th>Mem</th></tr>
       </thead>
       <tbody>
         {% for c in chats %}
@@ -127,11 +128,20 @@
           <td>{{ c.type }}</td>
           <td><code>{{ c.id }}</code></td>
           <td>
-            <select name="policy[{{ c.id }}]">
+            <select name="policy[{{ c.id }}]" data-chat-id="{{ c.id }}" onchange="syncMemorize('{{ c.id }}', this.value)">
               {% for p in policies %}
                 <option value="{{ p }}" {% if c.policy == p %}selected{% endif %}>{{ p }}</option>
               {% endfor %}
             </select>
+          </td>
+          <td>
+            <input
+              type="checkbox"
+              name="memorize[{{ c.id }}]"
+              id="memorize-{{ c.id }}"
+              {% if c.memorize and c.policy != 'excluded' %}checked{% endif %}
+              {% if c.policy == 'excluded' %}disabled{% endif %}
+            />
           </td>
         </tr>
         {% endfor %}
@@ -144,6 +154,17 @@
   {% endif %}
 
 <script>
+function syncMemorize(chatId, policy) {
+  var box = document.getElementById('memorize-' + chatId);
+  if (!box) return;
+  if (policy === 'excluded') {
+    box.checked = false;
+    box.disabled = true;
+    return;
+  }
+  box.disabled = false;
+}
+
 function svcAction(name, action, btn) {
   var row = btn.closest('tr');
   var statusCell = row.querySelector('.svc-status');
