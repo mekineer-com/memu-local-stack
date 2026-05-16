@@ -195,14 +195,18 @@ def _matches_service_process(spec: ServiceSpec, pid: int) -> bool:
     if spec.name == "hermes-gateway":
         return cwd_matches and "gateway.run" in cmd
     if spec.name == "whatsapp-bridge":
-        # Keep CWD-independent matching, but avoid adopting unrelated bridge.js processes.
-        return (
-            "bridge.js" in cmd
-            and (
-                "/hermes-agent/scripts/whatsapp-bridge/bridge.js" in cmd
-                or ("--mode self-chat" in cmd and "/.hermes/whatsapp/session" in cmd)
-            )
-        )
+        if "bridge.js" not in cmd:
+            return False
+        # PID-agnostic detection for Hermes-started/legacy bridge variants:
+        # accept known command signatures, or the process that currently owns
+        # the configured bridge port.
+        if "/hermes-agent/scripts/whatsapp-bridge/bridge.js" in cmd:
+            return True
+        if "--mode self-chat" in cmd and "/.hermes/whatsapp/session" in cmd:
+            return True
+        if spec.port is not None and _port_listener_pid(spec.port) == pid:
+            return True
+        return False
     if spec.name == "sillytavern":
         return "server.js" in cmd or "start.sh" in cmd
     return False
