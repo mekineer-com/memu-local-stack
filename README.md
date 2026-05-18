@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-05-16 (stock SillyTavern — no fork needed)_
+_Last updated: 2026-05-18 (v0.0.11-buildfix)_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -59,6 +59,8 @@ SillyTavern
 
 **Without SillyTavern**, you can use just the bottom two (`memU` + `mcp-memu-server`) with any other frontend. The plugin and extension are adapters — the memory system doesn't depend on them.
 
+**Prompt Inspector** is an optional developer extension that shows the exact prompt built for each turn. It has no effect on memory or retrieval and is not required to run memU.
+
 Memory extraction happens during **sleep gaps** — when you close a conversation and come back later (≥3 hours with overlap in a 22:00–08:00 window). The system reads what you talked about, pulls out what matters, and stores it. Relevant memories are then automatically included in the next turn so the AI already knows them.
 
 **If you never leave the conversation, nothing gets memorized automatically** — the system waits for a sleep gap before extracting. You can also click **Memorize Now** to extract the current conversation tail without waiting for a sleep gap.
@@ -83,6 +85,7 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match **all four rep
 | `v0.0.8-buildfix` | Consolidation pipeline, entity graph + temporal queries, life goals, APImw edge writing |
 | `v0.0.9-buildfix` | Narrative Suggestion end-to-end; turn-prompt length caps + stateless chat_x; triple write-time dedup + symmetric canonicalization; consolidation reads day-files (drops full.json dependency); category config rename; lorebook sync + extension Memory bubble checkboxes |
 | `v0.0.10-buildfix` | Memorize Now works (tail mode); cross-conversation memorize; SPEAK/LISTEN gate; Hermes integration; Park et al. salience scoring; schema rename (dropped memu_ prefix); Postgres removed; relative date separators; upstream prompt cleanup |
+| `v0.0.11-buildfix` | Stock SillyTavern — no fork or patches needed; fail-loud error contract across all repos; mental health procedural sidecar; Stack launcher with desktop shortcut |
 
 ---
 
