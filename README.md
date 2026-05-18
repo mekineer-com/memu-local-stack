@@ -73,7 +73,7 @@ Memory extraction happens during **sleep gaps** — when you close a conversatio
 
 Specifically: the SQLite schema changes between versions, and there's no migration tooling yet. When you move to a new release tag, expect a fresh start — don't build anything irreplaceable on top of an old version.
 
-Prefer `main` for the latest. If you'd rather pin to a tag, match **all five repos** to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, memu-local-stack).
+Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, memu-local-stack, and hermes-agent if you're using it).
 
 ### Release tags
 
@@ -128,7 +128,9 @@ and extension below get installed *inside* the SillyTavern tree.
 
 4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This adds the memU panel.
 
-5. **Stack Launcher** (this repo) — install and start the web UI for managing all services:
+5. **[hermes-agent](https://github.com/mekineer-com/hermes-agent)** *(optional — WhatsApp / autonomous soul loop only)* — clone as a sibling of the other repos. The WhatsApp bridge (`scripts/whatsapp-bridge/`) is bundled inside it. The Stack Launcher manages both from its Services panel.
+
+6. **Stack Launcher** (this repo) — install and start the web UI for managing all services:
 
    ```sh
    cd memu-local-stack/launcher
@@ -139,7 +141,7 @@ and extension below get installed *inside* the SillyTavern tree.
 
    Opens at `http://127.0.0.1:8765`. From here you can start and stop mcp-memu-server and SillyTavern, view their logs, and edit configs — no terminal juggling needed. To add a start-menu shortcut on Linux: `cp memu-stack.desktop ~/.local/share/applications/`.
 
-After step 5, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
+After step 6, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
 
 **Three things in `config.json` that must match your actual layout:**
 
