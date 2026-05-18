@@ -73,7 +73,7 @@ Memory extraction happens during **sleep gaps** — when you close a conversatio
 
 Specifically: the SQLite schema changes between versions, and there's no migration tooling yet. When you move to a new release tag, expect a fresh start — don't build anything irreplaceable on top of an old version.
 
-Prefer `main` for the latest. If you'd rather pin to a tag, match **all four repos** to the same one.
+Prefer `main` for the latest. If you'd rather pin to a tag, match **all five repos** to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, memu-local-stack).
 
 ### Release tags
 
@@ -128,7 +128,18 @@ and extension below get installed *inside* the SillyTavern tree.
 
 4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This adds the memU panel.
 
-After step 4, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
+5. **Stack Launcher** (this repo) — install and start the web UI for managing all services:
+
+   ```sh
+   cd memu-local-stack/launcher
+   python3 -m venv .venv
+   .venv/bin/pip install -r requirements.txt
+   .venv/bin/python run.py
+   ```
+
+   Opens at `http://127.0.0.1:8765`. From here you can start and stop mcp-memu-server and SillyTavern, view their logs, and edit configs — no terminal juggling needed. To add a start-menu shortcut on Linux: `cp memu-stack.desktop ~/.local/share/applications/`.
+
+After step 5, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
 
 **Three things in `config.json` that must match your actual layout:**
 
@@ -225,8 +236,6 @@ Runs at `http://127.0.0.1:8765`. Start-menu shortcut installed as `memu-stack.de
 ## What's coming
 
 **Additional procedural-memory domains** — the `mental_health` domain is live (see Mental Health Addon checkbox above). The architecture supports more curated knowledge bases. Next candidate: `tool-use` — how the soul has learned to use external tools, extracted from experience.
-
-**PicoClaw** — an autonomous soul loop: the companion acts between conversations, pursuing her own intentions rather than sitting idle.
 
 ---
 
