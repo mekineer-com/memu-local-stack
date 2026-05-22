@@ -73,14 +73,8 @@ def index(request: Request) -> HTMLResponse:
         {"key": k, "label": CONFIG_LABELS.get(k, k), "path": str(p)}
         for k, p in editable_paths.items()
     ]
-    try:
-        active_soul = soul.read_active_soul_id()
-        soul_ids = soul.list_soul_ids()
-    except RuntimeError:
-        active_soul = ""
-        soul_ids = []
-    if active_soul and active_soul not in soul_ids:
-        soul_ids = [active_soul, *soul_ids]
+    active_soul = soul.read_active_soul_id()
+    soul_ids = soul.list_soul_ids()
     return templates.TemplateResponse(
         request,
         "index.html",

@@ -4,23 +4,12 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 
-try:
-    import yaml
-except ModuleNotFoundError as exc:  # pragma: no cover
-    yaml = None  # type: ignore[assignment]
-    _YAML_IMPORT_ERROR = exc
-else:
-    _YAML_IMPORT_ERROR = None
+import yaml
 
 HERMES_CONFIG_PATH = Path.home() / ".hermes" / "config.yaml"
 
 
 def _load_config() -> dict:
-    if yaml is None:
-        raise RuntimeError(
-            "PyYAML is required for soul selection. Install launcher dependencies from "
-            "launcher/requirements.txt."
-        ) from _YAML_IMPORT_ERROR
     try:
         raw = HERMES_CONFIG_PATH.read_text(encoding="utf-8")
     except OSError as exc:
@@ -37,11 +26,6 @@ def _load_config() -> dict:
 
 
 def _write_config(config: dict) -> None:
-    if yaml is None:
-        raise RuntimeError(
-            "PyYAML is required for soul selection. Install launcher dependencies from "
-            "launcher/requirements.txt."
-        ) from _YAML_IMPORT_ERROR
     HERMES_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     dumped = yaml.safe_dump(
         config,
@@ -62,15 +46,19 @@ def _write_config(config: dict) -> None:
 
 def _soul_agents(config: dict) -> list[dict]:
     soul_mode = config.get("soul_mode")
+    if soul_mode is None:
+        return []
     if not isinstance(soul_mode, dict):
-        return []
+        raise RuntimeError("Invalid config: soul_mode must be a mapping")
     agents = soul_mode.get("agents")
-    if not isinstance(agents, dict):
+    if agents is None:
         return []
+    if not isinstance(agents, dict):
+        raise RuntimeError("Invalid config: soul_mode.agents must be a mapping")
     out: list[dict] = []
     for agent_cfg in agents.values():
         if not isinstance(agent_cfg, dict):
-            continue
+            raise RuntimeError("Invalid config: each soul_mode.agents entry must be a mapping")
         role = str(agent_cfg.get("role") or "").strip().lower()
         if role == "soul":
             out.append(agent_cfg)
@@ -103,18 +91,22 @@ def set_active_soul_id(soul_id: str) -> None:
 
     config = _load_config()
     soul_mode = config.get("soul_mode")
-    if not isinstance(soul_mode, dict):
+    if soul_mode is None:
         soul_mode = {}
         config["soul_mode"] = soul_mode
+    elif not isinstance(soul_mode, dict):
+        raise RuntimeError("Invalid config: soul_mode must be a mapping")
     agents = soul_mode.get("agents")
-    if not isinstance(agents, dict):
+    if agents is None:
         agents = {}
         soul_mode["agents"] = agents
+    elif not isinstance(agents, dict):
+        raise RuntimeError("Invalid config: soul_mode.agents must be a mapping")
 
     updated = False
     for agent_cfg in agents.values():
         if not isinstance(agent_cfg, dict):
-            continue
+            raise RuntimeError("Invalid config: each soul_mode.agents entry must be a mapping")
         role = str(agent_cfg.get("role") or "").strip().lower()
         if role != "soul":
             continue
@@ -123,10 +115,13 @@ def set_active_soul_id(soul_id: str) -> None:
 
     if not updated:
         main_cfg = agents.get("main")
-        if not isinstance(main_cfg, dict):
+        if main_cfg is None:
             main_cfg = {}
             agents["main"] = main_cfg
-        main_cfg["enabled"] = bool(main_cfg.get("enabled", True))
+        elif not isinstance(main_cfg, dict):
+            raise RuntimeError("Invalid config: soul_mode.agents.main must be a mapping")
+        if "enabled" not in main_cfg:
+            main_cfg["enabled"] = True
         main_cfg["role"] = "soul"
         main_cfg["soul_id"] = selected
 
