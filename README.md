@@ -67,28 +67,6 @@ Memory extraction happens during **sleep gaps** — when you close a conversatio
 
 ---
 
-## Status
-
-**This is prerelease software.** It works, it's actively used, and it will break your database on upgrade.
-
-Specifically: the SQLite schema changes between versions, and there's no migration tooling yet. When you move to a new release tag, expect a fresh start — don't build anything irreplaceable on top of an old version.
-
-Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, memu-local-stack, and hermes-agent if you're using it).
-
-### Release tags
-
-| Tag | Headline |
-|-----|----------|
-| `v0.0.5-buildfix` | Soul turn loop, memory cache, category seeds |
-| `v0.0.6-buildfix` | Social memory type, diary overhaul, self-model simplification |
-| `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
-| `v0.0.8-buildfix` | Consolidation pipeline, entity graph + temporal queries, life goals, APImw edge writing |
-| `v0.0.9-buildfix` | Narrative Suggestion end-to-end; turn-prompt length caps + stateless chat_x; triple write-time dedup + symmetric canonicalization; consolidation reads day-files (drops full.json dependency); category config rename; lorebook sync + extension Memory bubble checkboxes |
-| `v0.0.10-buildfix` | Memorize Now works (tail mode); cross-conversation memorize; SPEAK/LISTEN gate; Hermes integration; Park et al. salience scoring; schema rename (dropped memu_ prefix); Postgres removed; relative date separators; upstream prompt cleanup |
-| `v0.0.11-buildfix` | Stock SillyTavern — no fork or patches needed; fail-loud error contract across all repos; mental health procedural sidecar; Stack launcher with desktop shortcut |
-
----
-
 ## Getting started
 
 **You'll need**
@@ -118,6 +96,14 @@ lets you point at the parent directory explicitly.
 SillyTavern lives elsewhere (it's a full app, not a sibling). The plugin
 and extension below get installed *inside* the SillyTavern tree.
 
+**Three things in `config.json` that must match your actual layout:**
+
+| Setting | Points to |
+|---------|-----------|
+| `memu.path` | path to `memu/src` (the engine source, from step 2) |
+| `storage.metadata_store.dsn` | where the SQLite DB will live |
+| `llm.embed_model` | embedding model name — e.g. `text-embedding-3-large` (NanoGPT/OpenAI both support it) |
+
 **Set up in this order**
 
 1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service everything else talks to. Copy `config.example.json` → `config.json`, set your API key, and start it. Runs on port 8099.
@@ -143,17 +129,31 @@ and extension below get installed *inside* the SillyTavern tree.
 
 After step 6, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
 
-**Three things in `config.json` that must match your actual layout:**
-
-| Setting | Points to |
-|---------|-----------|
-| `memu.path` | path to `memu/src` (the engine source, from step 2) |
-| `storage.metadata_store.dsn` | where the SQLite DB will live |
-| `llm.embed_model` | embedding model name — e.g. `text-embedding-3-large` (NanoGPT/OpenAI both support it) |
-
 No Docker. Developed on Alpine Linux but works on anything that can run Python 3.12 and Node.
 
 Questions? Open an issue on the relevant repo.
+
+---
+
+## Status
+
+**This is prerelease software.** It works, it's actively used, and it will break your database on upgrade.
+
+Specifically: the SQLite schema changes between versions, and there's no migration tooling yet. When you move to a new release tag, expect a fresh start — don't build anything irreplaceable on top of an old version.
+
+Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, memu-local-stack, and hermes-agent if you're using it).
+
+### Release tags
+
+| Tag | Headline |
+|-----|----------|
+| `v0.0.5-buildfix` | Soul turn loop, memory cache, category seeds |
+| `v0.0.6-buildfix` | Social memory type, diary overhaul, self-model simplification |
+| `v0.0.7-buildfix` | Retrieve alignment, sleep-gap history, token budget, sleep-timer, shaped_by provenance |
+| `v0.0.8-buildfix` | Consolidation pipeline, entity graph + temporal queries, life goals, APImw edge writing |
+| `v0.0.9-buildfix` | Narrative Suggestion end-to-end; turn-prompt length caps + stateless chat_x; triple write-time dedup + symmetric canonicalization; consolidation reads day-files (drops full.json dependency); category config rename; lorebook sync + extension Memory bubble checkboxes |
+| `v0.0.10-buildfix` | Memorize Now works (tail mode); cross-conversation memorize; SPEAK/LISTEN gate; Hermes integration; Park et al. salience scoring; schema rename (dropped memu_ prefix); Postgres removed; relative date separators; upstream prompt cleanup |
+| `v0.0.11-buildfix` | Stock SillyTavern — no fork or patches needed; fail-loud error contract across all repos; mental health procedural sidecar; Stack launcher with desktop shortcut |
 
 ---
 
@@ -219,19 +219,6 @@ So if you write a character description in ST, that's who she is — her own sel
 **Two background passes — don't confuse them.**
 - **APImw** runs after each turn (multi-step retrieval + context curation). She comes back richer the next turn — and sometimes surfaces a subconscious thought.
 - **Consolidation** runs weekly (or on first activity after the interval lapses). She rewrites her self-model, manages her intentions, creates memory connections, and writes a reflection.
-
----
-
-## Stack launcher
-
-A local web UI for managing the full stack. Lives in `launcher/` in this repo.
-
-- **Services panel** — start, stop, and view logs for mcp-memu-server, Hermes gateway, WhatsApp bridge, and SillyTavern. Detects externally-started services and adopts them.
-- **Settings page** — edit configs (server `config.json`, Hermes `config.yaml`, Hermes persona `SOUL.md`). Auto-detects the apps-root directory from sibling repo layout; override on the settings page if your layout differs.
-- **WhatsApp channel policy** — per-chat policy editor with memorize checkbox (reads `~/.hermes/channel_directory.json`, writes `~/.hermes/memu.json`). Unchecked chats become background context during memorize rather than primary extraction targets.
-- **Logs viewer** — tail logs for any managed service.
-
-Runs at `http://127.0.0.1:8765`. Start-menu shortcut installed as `memu-stack.desktop`. Opens in a Chromium app window (falls back to default browser).
 
 ---
 
