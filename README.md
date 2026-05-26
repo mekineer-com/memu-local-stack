@@ -45,25 +45,23 @@ This matters more than it sounds. If you're having honest conversations with an 
 
 ## How it works at a glance
 
-[SillyTavern](https://github.com/SillyTavern/SillyTavern) is a popular platform for AI roleplay and companionship. memU integrates with it through a plugin and extension that sit quietly in the background. The full stack is four repos:
+The core of memU is two services that run on your machine: **mcp-memu-server** (orchestration, consolidation, state) and **memU** (the memory engine). They're always present. Everything else is optional — connect whichever frontends you want.
 
 ```
-SillyTavern
-  ├─ memu-sillytavern-plugin       (bridge between ST and the memU server)
-  └─ memu-sillytavern-extension    (UI layer — panel, buttons, settings)
-              ↓
-  mcp-memu-server                  (local service: orchestration, consolidation, state)
-              ↓
-  memU                             (the memory engine itself)
+  [SillyTavern]               [WhatsApp]            [any other frontend]
+  plugin + extension       hermes-agent
+                             └─ whatsapp-bridge
+        │                          │                         │
+        └──────────────────────────┴─────────────────────────┘
+                                   │
+                          mcp-memu-server              ← always present
+                                   │
+                                 memU                  ← always present
 ```
-
-**Without SillyTavern**, you can use just the bottom two (`memU` + `mcp-memu-server`) with any other frontend. The plugin and extension are adapters — the memory system doesn't depend on them.
-
-**Prompt Inspector** is an optional developer extension that shows the exact prompt built for each turn. It has no effect on memory or retrieval and is not required to run memU.
 
 Memory extraction happens during **sleep gaps** — when you close a conversation and come back later (≥3 hours with overlap in a 22:00–08:00 window). The system reads what you talked about, pulls out what matters, and stores it. Relevant memories are then automatically included in the next turn so the AI already knows them.
 
-**If you never leave the conversation, nothing gets memorized automatically** — the system waits for a sleep gap before extracting. You can also click **Memorize Now** to extract the current conversation tail without waiting for a sleep gap.
+**If you never leave the conversation, nothing gets memorized automatically** — the system waits for a sleep gap before extracting. You can also trigger extraction manually without waiting for a sleep gap.
 
 ---
 
@@ -72,29 +70,24 @@ Memory extraction happens during **sleep gaps** — when you close a conversatio
 **You'll need**
 
 - Python 3.12+
-- Node.js (for the SillyTavern pieces)
+- Node.js — if using SillyTavern or WhatsApp
 - An API key for an LLM provider — OpenAI, NanoGPT, or any compatible endpoint
-- SillyTavern already installed (stock — no fork or patches needed), if you're using the SillyTavern integration
 
 **Recommended layout**
 
-Clone all four repos as siblings under one parent directory:
+Clone repos as siblings under one parent directory:
 
 ```
 ~/stack/                          # any name; this is the "apps root"
 ├── mcp-memu-server/
 ├── memU/                         # cloned as "memu/" or "memU/" — engine
-├── hermes-agent/                 # optional; only if using Hermes integration
+├── hermes-agent/                 # optional; only if using WhatsApp
 └── memu-local-stack/             # this repo (docs + launcher)
 ```
 
-The Stack launcher walks up from its own directory to find this layout
-automatically, so no path configuration is needed when the repos sit
-side-by-side. If your layout differs, the launcher's `/settings` page
-lets you point at the parent directory explicitly.
+The Stack launcher walks up from its own directory to find this layout automatically, so no path configuration is needed when the repos sit side-by-side. If your layout differs, the launcher's `/settings` page lets you point at the parent directory explicitly.
 
-SillyTavern lives elsewhere (it's a full app, not a sibling). The plugin
-and extension below get installed *inside* the SillyTavern tree.
+SillyTavern lives elsewhere (it's a full app, not a sibling). The plugin and extension get installed *inside* the SillyTavern tree.
 
 **Three things in `config.json` that must match your actual layout:**
 
@@ -104,19 +97,29 @@ and extension below get installed *inside* the SillyTavern tree.
 | `storage.metadata_store.dsn` | where the SQLite DB will live |
 | `llm.embed_model` | embedding model name — e.g. `text-embedding-3-large` (NanoGPT/OpenAI both support it) |
 
-**Set up in this order**
+### Core (required)
 
 1. **[mcp-memu-server](https://github.com/mekineer-com/mcp-memu-server)** — start here. This is the local service everything else talks to. Copy `config.example.json` → `config.json`, set your API key, and start it. Runs on port 8099.
 
 2. **[memU](https://github.com/mekineer-com/memU)** — the memory engine. Clone it and point `mcp-memu-server`'s config at it (the `memu.path` setting).
 
+### Optional: SillyTavern
+
+[SillyTavern](https://github.com/SillyTavern/SillyTavern) is a popular platform for AI roleplay and companionship. Install it separately (stock — no fork or patches needed), then add:
+
 3. **[memu-sillytavern-plugin](https://github.com/mekineer-com/memu-sillytavern-plugin)** — clone into SillyTavern's `plugins/` folder. Enable `enableServerPlugins: true` in SillyTavern's `config.yaml`, then restart SillyTavern.
 
 4. **[memu-sillytavern-extension](https://github.com/mekineer-com/memu-sillytavern-extension)** — clone into SillyTavern's `data/default-user/extensions/` folder. This adds the memU panel.
 
-5. **[hermes-agent](https://github.com/mekineer-com/hermes-agent)** *(optional — WhatsApp / autonomous soul loop only)* — clone as a sibling of the other repos. The WhatsApp bridge (`scripts/whatsapp-bridge/`) is bundled inside it. The Stack Launcher manages both from its Services panel.
+After setup, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
 
-6. **Stack Launcher** (this repo) — install and start the web UI for managing all services:
+### Optional: WhatsApp
+
+5. **[hermes-agent](https://github.com/mekineer-com/hermes-agent)** — clone as a sibling of the other repos. The WhatsApp bridge (`scripts/whatsapp-bridge/`) is bundled inside it. Hermes also supports an autonomous soul loop — the soul can initiate contact, not just respond. The Stack Launcher manages both from its Services panel.
+
+### Stack Launcher
+
+6. **Stack Launcher** (this repo) — a local web UI for managing all services:
 
    ```sh
    cd memu-local-stack/launcher
@@ -125,9 +128,7 @@ and extension below get installed *inside* the SillyTavern tree.
    .venv/bin/python run.py
    ```
 
-   Opens at `http://127.0.0.1:8765`. From here you can start and stop mcp-memu-server and SillyTavern, view their logs, and edit configs — no terminal juggling needed. To add a start-menu shortcut on Linux: `cp memu-stack.desktop ~/.local/share/applications/`.
-
-After step 6, open the memU extension panel in SillyTavern and set **Server URL** to `http://127.0.0.1:8099`.
+   Opens at `http://127.0.0.1:8765`. Start and stop any service, view logs, edit configs — no terminal juggling needed. To add a start-menu shortcut on Linux: `cp memu-stack.desktop ~/.local/share/applications/`.
 
 No Docker. Developed on Alpine Linux but works on anything that can run Python 3.12 and Node.
 
@@ -159,7 +160,9 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to t
 
 ## Day-to-day use
 
-### Controls in the extension
+### SillyTavern
+
+#### Controls in the extension
 
 | Control | Location | What it does |
 |---------|----------|--------------|
@@ -168,7 +171,7 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to t
 | **Eye icon** (👁) | memU extension drawer header, next to the memU logo | Opens a memory inspector. Categories show as memU lorebooks, each containing the items the soul has stored under that category. |
 | **Narrative Suggestion** input | memU panel, under the Memorize Now button | Sends the soul a suggested revision of her `narrative_self`. See below. |
 
-### Memory bubble checkboxes
+#### Memory bubble checkboxes
 
 | Toggle | Default | What |
 |--------|---------|------|
@@ -176,13 +179,13 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to t
 | **Import Lorebooks** | on | Publishes memU categories as SillyTavern lorebooks named `memU - <Character> - <Category>`, so the soul's knowledge shows up in ST's world info. Unchecking deletes any existing ones for this character. |
 | **Mental Health Addon** | off | Enables the mental-health procedural sidecar — 15 curated anchor entries (rumination, grief, panic, self-criticism, loneliness, etc.) the soul can draw on when the conversation touches a relevant theme. Items appear in the turn prompt as `[mental_health-procedural-memory]`. Always-on once checked; not soul-gated. |
 
-### Relationships
+#### Relationships
 
 The Memory bubble has a **Relationships** section (greyed out until a soul/character is active). Here you declare third parties the soul should be aware of — family, friends, coworkers, pets. Each entry becomes a named entity in the memory graph. When the soul extracts memories from conversation that mentions a declared relationship, she can attribute the memory to the right person rather than guessing.
 
 You can add, edit, and soft-delete relationships. The section shows a warning when you exceed 20 entries.
 
-### Letting the soul author her own self-model
+#### Letting the soul author her own self-model
 
 The companion has a `narrative_self` — her evolving sense of who she is. The weekly consolidation pass rewrites it as her experience accumulates. You can also feed her a suggestion directly via the **Narrative Suggestion** input.
 
@@ -204,11 +207,23 @@ So if you write a character description in ST, that's who she is — her own sel
 
 10-minute cooldown between suggestions so the soul isn't churning her identity every minute.
 
+### WhatsApp
+
+The soul appears as a WhatsApp contact. Hermes routes each incoming message to mcp-memu-server, which runs the full turn — retrieval, response, subconscious pass — then sends the reply back through the bridge.
+
+**Channel policy** — each WhatsApp chat can be individually configured: whether it's a primary memorize target or just background context. Edit per-chat settings via the Stack Launcher's WhatsApp channel policy page (reads/writes `~/.hermes/channel_directory.json` and `~/.hermes/memu.json`).
+
+**Bot mode** — in group chats, set `reply_prefix` in `~/.hermes/config.yaml` so the soul only responds to messages that start with a trigger (e.g. `!siri`). In direct chats, she responds to everything.
+
+**Autonomous loop** — Hermes can run a timed loop where the soul checks in with you unprompted, not just when you write first. Configured via `~/.hermes/config.yaml`.
+
+Memorize works the same way as SillyTavern: sleep gaps trigger extraction automatically. Manual extraction is available via `mcp-memu-server`'s API if needed.
+
 ---
 
 ## Things to know
 
-**One soul = one memory store, many chats.** Each `soul_id` has its own memory database. You can have multiple SillyTavern chats with the same soul — each chat memorizes independently (own cursor, own manifest), and retrieval pulls from all of them. If you want two separate personalities (e.g., a partner *and* a research assistant), use two different `soul_id` values — they get isolated memory stores.
+**One soul = one memory store, many chats.** Each `soul_id` has its own memory database. You can have multiple conversations with the same soul across SillyTavern and WhatsApp — each chat memorizes independently (own cursor, own manifest), and retrieval pulls from all of them. If you want two separate personalities (e.g., a partner *and* a research assistant), use two different `soul_id` values — they get isolated memory stores.
 
 **Where the data lives.** All memory state is in a SQLite file at the path you set in `storage.metadata_store.dsn` (per soul, by default — check the path you wrote in `config.json`). To back up your companion, copy that file. To start fresh, delete it.
 
