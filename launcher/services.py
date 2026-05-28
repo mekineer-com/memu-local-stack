@@ -107,7 +107,7 @@ def all_services() -> list[ServiceSpec]:
         ServiceSpec(
             name="sillytavern",
             label="SillyTavern",
-            cmd=["bash", "start.sh", "--browserLaunchEnabled=false"],
+            cmd=["bash", "start.sh"],
             cwd=root / "sillytavern" / "SillyTavern",
             log_path=STATE_DIR / "sillytavern.log",
             pid_path=STATE_DIR / "sillytavern.pid",
