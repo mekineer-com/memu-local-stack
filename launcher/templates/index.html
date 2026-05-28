@@ -36,6 +36,8 @@
     .tight li { margin: 0.3rem 0; }
     .term-toggle { margin-left: 0.5rem; font-size: 0.9em; color: #aaa; }
     .term-toggle input { accent-color: #6aa9ff; }
+    .start-options { display: inline-flex; flex-direction: column; align-items: flex-start; margin-left: 0.5rem; gap: 0.15rem; }
+    .start-options .term-toggle { margin-left: 0; }
     .spinner {
       display: inline-block;
       width: 0.85em;
@@ -84,11 +86,15 @@
             <button class="btn" onclick="svcAction('{{ s.name }}','stop',this)">Stop</button>
           {% else %}
             <button class="btn" onclick="svcAction('{{ s.name }}','start',this)">Start</button>
-            {% if s.supports_terminal %}
-              <label class="term-toggle"><input type="checkbox" id="term-{{ s.name }}" value="1"> show terminal</label>
-            {% endif %}
-            {% if s.name == 'sillytavern' %}
-              <label class="term-toggle"><input type="checkbox" id="open-{{ s.name }}" value="1" checked> open browser</label>
+            {% if s.supports_terminal or s.name == 'sillytavern' %}
+              <span class="start-options">
+                {% if s.supports_terminal %}
+                  <label class="term-toggle"><input type="checkbox" id="term-{{ s.name }}" value="1"> show terminal</label>
+                {% endif %}
+                {% if s.name == 'sillytavern' %}
+                  <label class="term-toggle"><input type="checkbox" id="open-{{ s.name }}" value="1" checked> open browser</label>
+                {% endif %}
+              </span>
             {% endif %}
           {% endif %}
         </td>
@@ -198,8 +204,28 @@ function svcAction(name, action, btn) {
   }
   fetch('/service/' + name + '/' + action, {method: 'POST', body: body})
     .then(function(r) { return r.json(); })
-    .then(function() { location.reload(); })
+    .then(function() { waitForStatus(name, action === 'start'); })
     .catch(function() { location.reload(); });
+}
+
+function waitForStatus(name, expectedRunning) {
+  var tries = 0;
+  var maxTries = 40;
+  var delayMs = 250;
+  function poll() {
+    fetch('/service/' + name + '/status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!!data.running === !!expectedRunning || tries >= maxTries) {
+          location.reload();
+          return;
+        }
+        tries += 1;
+        window.setTimeout(poll, delayMs);
+      })
+      .catch(function() { location.reload(); });
+  }
+  poll();
 }
 </script>
 </body>
