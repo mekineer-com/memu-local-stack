@@ -1,10 +1,7 @@
 """FastAPI app for the memU stack launcher."""
 from __future__ import annotations
 
-import socket
 import subprocess
-import time
-import webbrowser
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -26,28 +23,6 @@ CONFIG_LABELS: dict[str, str] = {
 }
 
 app = FastAPI(title="memU Stack")
-
-
-def _wait_for_port(host: str, port: int, timeout: float = 8.0) -> bool:
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        with socket.socket() as s:
-            s.settimeout(0.25)
-            try:
-                s.connect((host, port))
-                return True
-            except OSError:
-                time.sleep(0.15)
-    return False
-
-
-def _open_url(url: str) -> None:
-    try:
-        subprocess.Popen(["xdg-open", url], start_new_session=True)
-        return
-    except (FileNotFoundError, OSError):
-        pass
-    webbrowser.open(url)
 
 
 def _editable_configs(apps_root: Path | None) -> dict[str, Path]:
@@ -172,11 +147,9 @@ def service_start(
 ) -> dict:
     spec = _find_service(service_name)
     services.start(spec, show_terminal=bool(show_terminal))
-    running = services.is_running(spec)
-    if service_name == "sillytavern" and bool(open_browser) and running:
-        if _wait_for_port("127.0.0.1", 8001):
-            _open_url("http://127.0.0.1:8001")
-    return {"ok": True, "running": running}
+    if service_name == "sillytavern" and bool(open_browser):
+        subprocess.Popen(["xdg-open", "http://127.0.0.1:8001"], start_new_session=True)
+    return {"ok": True, "running": services.is_running(spec)}
 
 
 @app.post("/service/{service_name}/stop")
