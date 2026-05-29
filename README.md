@@ -227,6 +227,8 @@ Memorize works the same way as SillyTavern: sleep gaps trigger extraction automa
 
 **Where the data lives.** All memory state is in a SQLite file at the path you set in `storage.metadata_store.dsn` (per soul, by default — check the path you wrote in `config.json`). To back up your companion, copy that file. To start fresh, delete it.
 
+**Embedding provider fallback.** If your primary LLM provider is down during memorize (embeddings fail with 502), you can switch the plugin's `defaultProfileId` in `memu-plugin.config.json` to any other ST provider profile. The plugin resolves the embedding API base URL directly from ST's own provider config at load time, so switching profiles is enough.
+
 **This costs money to run.** Every turn calls your LLM provider (the soul's response). Every memorize calls it several more times (router + extraction per applicable type, plus optional category clustering). Consolidation calls it weekly, plus a per-episode background retrieval. APImw runs a couple of background calls after each turn. With a budget provider like NanoGPT this stays cheap, but it isn't free — assume real API spend.
 
 **Consolidation cadence is real time, not turn count.** It's gated by `consolidation_interval_days` (default 7) since the last run. If you don't talk to her for two weeks then come back, the next memorize fires a consolidation immediately.
