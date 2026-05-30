@@ -117,6 +117,32 @@ def _write_group_name_cache(cache: dict[str, str]) -> None:
         return
 
 
+def _fetch_bridge_known_chats(*, timeout: float = 1.5) -> list[dict]:
+    """Best-effort chat discovery from the WhatsApp bridge runtime cache."""
+    url = f"{BRIDGE_BASE_URL}/chats-known"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            if resp.status != 200:
+                return []
+            payload = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, OSError, json.JSONDecodeError, ValueError):
+        return []
+    rows = payload.get("chats") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        return []
+    out: list[dict] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        chat_id = str(row.get("id") or "").strip()
+        if not chat_id:
+            continue
+        chat_type = str(row.get("type") or "").strip() or "dm"
+        name = str(row.get("name") or "").strip()
+        out.append({"id": chat_id, "type": chat_type, "name": name})
+    return out
+
+
 def list_whatsapp_chats() -> list[dict]:
     try:
         data = json.loads(DIRECTORY_PATH.read_text(encoding="utf-8"))
@@ -125,6 +151,31 @@ def list_whatsapp_chats() -> list[dict]:
     platforms = data.get("platforms") if isinstance(data, dict) else None
     whatsapp = platforms.get("whatsapp") if isinstance(platforms, dict) else None
     if not isinstance(whatsapp, list):
+        whatsapp = []
+
+    by_id: dict[str, dict] = {}
+    for chat in whatsapp:
+        if not isinstance(chat, dict):
+            continue
+        chat_id = str(chat.get("id") or "").strip()
+        if not chat_id:
+            continue
+        by_id[chat_id] = dict(chat)
+    for chat in _fetch_bridge_known_chats():
+        chat_id = str(chat.get("id") or "").strip()
+        if not chat_id:
+            continue
+        existing = by_id.get(chat_id)
+        if existing is None:
+            by_id[chat_id] = chat
+            continue
+        if not str(existing.get("name") or "").strip() and str(chat.get("name") or "").strip():
+            existing["name"] = chat.get("name")
+        if not str(existing.get("type") or "").strip() and str(chat.get("type") or "").strip():
+            existing["type"] = chat.get("type")
+
+    whatsapp = list(by_id.values())
+    if not whatsapp:
         return []
 
     self_ids = _self_identifiers()
