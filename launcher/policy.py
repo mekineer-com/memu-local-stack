@@ -117,6 +117,21 @@ def _write_group_name_cache(cache: dict[str, str]) -> None:
         return
 
 
+def _fetch_lid_map(*, timeout: float = 1.5) -> dict[str, str]:
+    """Fetch LID→phone mapping from the bridge."""
+    url = f"{BRIDGE_BASE_URL}/lid-map"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            if resp.status != 200:
+                return {}
+            payload = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, OSError, json.JSONDecodeError, ValueError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    return {str(k): str(v) for k, v in payload.items() if k and v}
+
+
 def _fetch_bridge_known_chats(*, timeout: float = 1.5) -> list[dict]:
     """Best-effort chat discovery from the WhatsApp bridge runtime cache."""
     url = f"{BRIDGE_BASE_URL}/chats-known"
@@ -153,6 +168,8 @@ def list_whatsapp_chats() -> list[dict]:
     if not isinstance(whatsapp, list):
         whatsapp = []
 
+    lid_map = _fetch_lid_map()
+
     by_id: dict[str, dict] = {}
     for chat in whatsapp:
         if not isinstance(chat, dict):
@@ -160,6 +177,11 @@ def list_whatsapp_chats() -> list[dict]:
         chat_id = str(chat.get("id") or "").strip()
         if not chat_id:
             continue
+        # Normalize @lid → @s.whatsapp.net using bridge mapping
+        local = chat_id.split("@")[0]
+        if chat_id.endswith("@lid") and local in lid_map:
+            chat_id = f"{lid_map[local]}@s.whatsapp.net"
+            chat = {**chat, "id": chat_id}
         by_id[chat_id] = dict(chat)
     for chat in _fetch_bridge_known_chats():
         chat_id = str(chat.get("id") or "").strip()
@@ -173,6 +195,21 @@ def list_whatsapp_chats() -> list[dict]:
             existing["name"] = chat.get("name")
         if not str(existing.get("type") or "").strip() and str(chat.get("type") or "").strip():
             existing["type"] = chat.get("type")
+
+    _migrate_lid_policy_keys(lid_map, by_id)
+
+    # Dedup: drop @lid entries when a @s.whatsapp.net entry shares the same name
+    phone_names: set[str] = set()
+    for chat in by_id.values():
+        cid = str(chat.get("id") or "")
+        name = str(chat.get("name") or "").strip()
+        if name and not cid.endswith("@lid"):
+            phone_names.add(name)
+    for cid in list(by_id):
+        if cid.endswith("@lid"):
+            name = str(by_id[cid].get("name") or "").strip()
+            if name and name in phone_names:
+                del by_id[cid]
 
     whatsapp = list(by_id.values())
     if not whatsapp:
@@ -237,6 +274,43 @@ def list_whatsapp_chats() -> list[dict]:
         _write_group_name_cache(group_name_cache)
 
     return enriched
+
+
+def _migrate_lid_policy_keys(lid_map: dict[str, str], by_id: dict[str, dict]) -> None:
+    """Re-key @lid policy entries in memu.json to their phone form."""
+    try:
+        data = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return
+    channels = (data.get("whatsapp") or {}).get("channels")
+    if not isinstance(channels, dict):
+        return
+    # Build name→phone-id lookup from merged chat list
+    name_to_phone: dict[str, str] = {}
+    for cid, chat in by_id.items():
+        name = str(chat.get("name") or "").strip()
+        if name and not cid.endswith("@lid"):
+            name_to_phone[name] = cid
+
+    migrated = False
+    for lid_key in list(channels):
+        if not lid_key.endswith("@lid"):
+            continue
+        local = lid_key.split("@")[0]
+        phone = lid_map.get(local)
+        phone_key = f"{phone}@s.whatsapp.net" if phone else None
+        # Fallback: match by name from channel_directory
+        if not phone_key:
+            lid_name = str(by_id.get(lid_key, {}).get("name") or "").strip()
+            phone_key = name_to_phone.get(lid_name) if lid_name else None
+        if not phone_key:
+            continue
+        if phone_key not in channels:
+            channels[phone_key] = channels[lid_key]
+        del channels[lid_key]
+        migrated = True
+    if migrated:
+        POLICY_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def _default_memorize_for_policy(policy: Policy) -> bool:
