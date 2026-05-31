@@ -12,6 +12,7 @@ DIRECTORY_PATH = HERMES_HOME / "channel_directory.json"
 POLICY_PATH = HERMES_HOME / "memu.json"
 CREDS_PATH = HERMES_HOME / "whatsapp" / "session" / "creds.json"
 GROUP_NAME_CACHE_PATH = HERMES_HOME / "whatsapp_group_names.json"
+DM_NAME_CACHE_PATH = HERMES_HOME / "whatsapp_dm_names.json"
 BRIDGE_BASE_URL = "http://127.0.0.1:3000"
 
 Policy = Literal["full", "listen_only", "excluded"]
@@ -117,6 +118,37 @@ def _write_group_name_cache(cache: dict[str, str]) -> None:
         return
 
 
+def _load_dm_name_cache() -> dict[str, str]:
+    """Load persisted WhatsApp DM display names keyed by chat id."""
+    try:
+        raw = json.loads(DM_NAME_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, value in raw.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            continue
+        chat_id = key.strip()
+        name = value.strip()
+        if chat_id and name:
+            out[chat_id] = name
+    return out
+
+
+def _write_dm_name_cache(cache: dict[str, str]) -> None:
+    """Persist normalized DM display names; ignore write errors in launcher UI."""
+    try:
+        DM_NAME_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        DM_NAME_CACHE_PATH.write_text(
+            json.dumps(cache, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        return
+
+
 def _fetch_bridge_known_chats(*, timeout: float = 1.5) -> list[dict]:
     """Best-effort chat discovery from the WhatsApp bridge runtime cache."""
     url = f"{BRIDGE_BASE_URL}/chats-known"
@@ -180,7 +212,9 @@ def list_whatsapp_chats() -> list[dict]:
 
     self_ids = _self_identifiers()
     group_name_cache = _load_group_name_cache()
+    dm_name_cache = _load_dm_name_cache()
     cache_changed = False
+    dm_cache_changed = False
     self_kept: dict | None = None  # First (preferably named) entry that is the human.
     enriched: list[dict] = []
     for chat in whatsapp:
@@ -211,6 +245,16 @@ def list_whatsapp_chats() -> list[dict]:
             if group_name_cache.get(chat_id) != name:
                 group_name_cache[chat_id] = name
                 cache_changed = True
+        elif not is_group and chat_id:
+            if name and not _looks_like_raw_id(name):
+                if dm_name_cache.get(chat_id) != name:
+                    dm_name_cache[chat_id] = name
+                    dm_cache_changed = True
+            else:
+                cached_dm_name = dm_name_cache.get(chat_id, "")
+                if cached_dm_name:
+                    chat = {**chat, "name": cached_dm_name}
+                    name = cached_dm_name
 
         # Collapse the human's two WhatsApp identities (phone JID + LID)
         # into a single row. Keep the entry whose directory name isn't a
@@ -235,6 +279,8 @@ def list_whatsapp_chats() -> list[dict]:
 
     if cache_changed:
         _write_group_name_cache(group_name_cache)
+    if dm_cache_changed:
+        _write_dm_name_cache(dm_name_cache)
 
     return enriched
 
