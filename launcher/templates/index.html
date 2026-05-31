@@ -217,8 +217,14 @@ function pollStatus(name) {
         actionsCell.innerHTML = '<button class="btn" onclick="svcAction(\'' + name + '\',\'start\',this)">Start</button>';
       }
     })
-    .catch(function() { location.reload(); });
+    .catch(function() {});
 }
+
+setInterval(function() {
+  document.querySelectorAll('tr[data-service]').forEach(function(row) {
+    pollStatus(row.dataset.service);
+  });
+}, 5000);
 </script>
 </body>
 </html>
