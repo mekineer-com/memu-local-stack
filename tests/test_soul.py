@@ -2,6 +2,8 @@ import sys
 from types import SimpleNamespace
 from pathlib import Path
 
+import pytest
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "launcher"))
 sys.modules.setdefault("yaml", SimpleNamespace(safe_load=lambda _raw: {}, safe_dump=lambda *_a, **_k: ""))
@@ -27,3 +29,19 @@ def test_stamp_soul_active_since_insert_or_ignore(tmp_path, monkeypatch):
         con.close()
 
     assert rows == [("Siri", 100.0)]
+
+
+def test_set_active_soul_id_does_not_stamp_when_config_write_fails(monkeypatch):
+    monkeypatch.setattr(
+        soul,
+        "_load_config",
+        lambda: {"soul_mode": {"agents": {"main": {"role": "soul", "soul_id": "Echo"}}}},
+    )
+    monkeypatch.setattr(soul, "_write_config", lambda _config: (_ for _ in ()).throw(RuntimeError("write failed")))
+    stamped = []
+    monkeypatch.setattr(soul, "_stamp_soul_active_since", lambda *_a, **_k: stamped.append(True))
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        soul.set_active_soul_id("Siri")
+
+    assert stamped == []

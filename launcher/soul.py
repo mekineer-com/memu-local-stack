@@ -203,5 +203,5 @@ def set_active_soul_id(soul_id: str) -> None:
         main_cfg["soul_id"] = selected
 
     _refresh_whatsapp_reply_prefix(config, selected=selected, old_soul_ids=old_soul_ids)
-    _stamp_soul_active_since(selected)
     _write_config(config)
+    _stamp_soul_active_since(selected)
