@@ -31,6 +31,7 @@ def test_hermes_gateway_status_uses_whatsapp_degraded_state(tmp_path, monkeypatc
                     "state": "degraded",
                     "bridge": {"state": "ready", "mode": "bot"},
                     "web_source": {"state": "degraded", "error": "writer exited"},
+                    "soul_history": {"state": "degraded", "error": "history failed"},
                 }
             }
         }),
@@ -55,4 +56,5 @@ def test_hermes_gateway_status_uses_whatsapp_degraded_state(tmp_path, monkeypatc
     assert status["children"] == [
         {"name": "bridge", "state": "ready", "detail": "mode bot"},
         {"name": "web-source", "state": "degraded", "detail": "writer exited"},
+        {"name": "soul-history", "state": "degraded", "detail": "history failed"},
     ]

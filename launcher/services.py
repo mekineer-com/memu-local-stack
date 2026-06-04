@@ -341,7 +341,7 @@ def status(spec: ServiceSpec) -> dict:
                 state = "degraded"
                 label = "▲ degraded"
             detail = f"WhatsApp {whatsapp_state}" if whatsapp_state else ""
-            for child_name in ("bridge", "web_source"):
+            for child_name in ("bridge", "web_source", "soul_history"):
                 child = _child_status_parts(child_name.replace("_", "-"), whatsapp.get(child_name))
                 if child is not None:
                     children.append(child)
