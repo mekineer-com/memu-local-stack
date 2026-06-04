@@ -58,3 +58,39 @@ def test_hermes_gateway_status_uses_whatsapp_degraded_state(tmp_path, monkeypatc
         {"name": "web-source", "state": "degraded", "detail": "writer exited"},
         {"name": "soul-history", "state": "degraded", "detail": "history failed"},
     ]
+
+
+def test_hermes_gateway_status_ignores_stale_runtime_pid(tmp_path, monkeypatch):
+    hermes_home = tmp_path / ".hermes"
+    hermes_home.mkdir()
+    (hermes_home / "gateway_state.json").write_text(
+        json.dumps({
+            "pid": 111,
+            "platforms": {
+                "whatsapp": {
+                    "state": "healthy",
+                    "bridge": {"state": "ready", "mode": "bot"},
+                }
+            },
+        }),
+        encoding="utf-8",
+    )
+    pid_path = tmp_path / "gateway.pid"
+    pid_path.write_text("222", encoding="utf-8")
+    monkeypatch.setattr(services, "HERMES_HOME", hermes_home)
+    monkeypatch.setattr(services, "is_running", lambda _spec: True)
+    spec = services.ServiceSpec(
+        name="hermes-gateway",
+        label="hermes-agent gateway",
+        cmd=[],
+        cwd=tmp_path,
+        log_path=tmp_path / "gateway.log",
+        pid_path=pid_path,
+    )
+
+    status = services.status(spec)
+
+    assert status["running"] is True
+    assert status["state"] == "starting"
+    assert status["status_label"] == "◐ starting"
+    assert status["detail"] == "waiting for Hermes status"

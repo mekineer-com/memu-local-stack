@@ -356,6 +356,7 @@ def _child_status_parts(name: str, data: object) -> dict[str, str] | None:
 
 def status(spec: ServiceSpec) -> dict:
     running = is_running(spec)
+    pid = _read_pid(spec.pid_path) if running else None
     state = "running" if running else "stopped"
     label = "● running" if running else "○ stopped"
     detail = ""
@@ -364,6 +365,8 @@ def status(spec: ServiceSpec) -> dict:
 
     if spec.name == "hermes-gateway" and running:
         gateway_state = _read_gateway_state()
+        if gateway_state.get("pid") != pid:
+            gateway_state = {}
         platforms = gateway_state.get("platforms") if isinstance(gateway_state, dict) else None
         whatsapp = platforms.get("whatsapp") if isinstance(platforms, dict) else None
         if isinstance(whatsapp, dict):
