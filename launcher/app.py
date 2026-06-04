@@ -48,12 +48,11 @@ def index(request: Request) -> HTMLResponse:
     apps_root = settings.apps_root()
     specs = services.all_services()
     rows = [
-        {
+        ({
             "name": s.name,
             "label": s.label,
-            "running": services.is_running(s),
             "supports_terminal": s.supports_terminal,
-        }
+        } | services.status(s))
         for s in specs
     ]
     chats = policy.list_whatsapp_chats()
@@ -146,20 +145,20 @@ def service_start(
 ) -> dict:
     spec = _find_service(service_name)
     services.start(spec, show_terminal=bool(show_terminal))
-    return {"ok": True, "running": services.is_running(spec)}
+    return {"ok": True, **services.status(spec)}
 
 
 @app.post("/service/{service_name}/stop")
 def service_stop(service_name: str) -> dict:
     spec = _find_service(service_name)
     services.stop(spec)
-    return {"ok": True, "running": services.is_running(spec)}
+    return {"ok": True, **services.status(spec)}
 
 
 @app.get("/service/{service_name}/status")
 def service_status(service_name: str) -> dict:
     spec = _find_service(service_name)
-    return {"running": services.is_running(spec)}
+    return services.status(spec)
 
 
 @app.post("/policy")

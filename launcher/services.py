@@ -90,21 +90,6 @@ def all_services() -> list[ServiceSpec]:
             adopt_pid_parser=_parse_gateway_pid,
         ),
         ServiceSpec(
-            name="whatsapp-bridge",
-            label="WhatsApp bridge",
-            cmd=[
-                "node", "bridge.js",
-                "--port", "3000",
-                "--session", str(HERMES_HOME / "whatsapp" / "session"),
-                "--mode", "bot",
-            ],
-            cwd=root / "hermes-agent" / "scripts" / "whatsapp-bridge",
-            log_path=STATE_DIR / "whatsapp-bridge.log",
-            pid_path=STATE_DIR / "whatsapp-bridge.pid",
-            env={"WHATSAPP_ALLOWED_USERS": "*"},
-            port=3000,
-        ),
-        ServiceSpec(
             name="sillytavern",
             label="SillyTavern",
             cmd=["bash", "start.sh"],
@@ -202,19 +187,6 @@ def _matches_service_process(spec: ServiceSpec, pid: int) -> bool:
         if not cwd_matches:
             return False
         return "gateway.run" in cmd or "hermes gateway run" in cmd
-    if spec.name == "whatsapp-bridge":
-        if "bridge.js" not in cmd:
-            return False
-        # PID-agnostic detection for Hermes-started/legacy bridge variants:
-        # accept known command signatures, or a process launched from the
-        # expected bridge cwd. Do not trust port ownership alone.
-        if "/hermes-agent/scripts/whatsapp-bridge/bridge.js" in cmd:
-            return True
-        if "--mode self-chat" in cmd and "/.hermes/whatsapp/session" in cmd:
-            return True
-        if cwd_matches:
-            return True
-        return False
     if spec.name == "sillytavern":
         return "server.js" in cmd or "start.sh" in cmd
     return False
@@ -318,6 +290,73 @@ def is_running(spec: ServiceSpec) -> bool:
 
     _clear_pid(spec)
     return False
+
+
+def _read_gateway_state() -> dict:
+    try:
+        data = json.loads((HERMES_HOME / "gateway_state.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _child_status_parts(name: str, data: object) -> dict[str, str] | None:
+    if not isinstance(data, dict):
+        return None
+    state = str(data.get("state") or data.get("status") or "unknown")
+    detail_bits = []
+    mode = data.get("mode")
+    if mode:
+        detail_bits.append(f"mode {mode}")
+    error = data.get("error")
+    if error:
+        detail_bits.append(str(error))
+    return {
+        "name": name,
+        "state": state,
+        "detail": "; ".join(detail_bits),
+    }
+
+
+def status(spec: ServiceSpec) -> dict:
+    running = is_running(spec)
+    state = "running" if running else "stopped"
+    label = "● running" if running else "○ stopped"
+    detail = ""
+    children: list[dict[str, str]] = []
+
+    if spec.name == "hermes-gateway" and running:
+        gateway_state = _read_gateway_state()
+        platforms = gateway_state.get("platforms") if isinstance(gateway_state, dict) else None
+        whatsapp = platforms.get("whatsapp") if isinstance(platforms, dict) else None
+        if isinstance(whatsapp, dict):
+            whatsapp_state = str(whatsapp.get("state") or "").strip().lower()
+            if whatsapp_state in {"healthy", "connected"}:
+                state = "healthy"
+                label = "● healthy"
+            elif whatsapp_state == "starting":
+                state = "starting"
+                label = "◐ starting"
+            elif whatsapp_state:
+                state = "degraded"
+                label = "▲ degraded"
+            detail = f"WhatsApp {whatsapp_state}" if whatsapp_state else ""
+            for child_name in ("bridge", "web_source"):
+                child = _child_status_parts(child_name.replace("_", "-"), whatsapp.get(child_name))
+                if child is not None:
+                    children.append(child)
+        else:
+            state = "starting"
+            label = "◐ starting"
+            detail = "waiting for Hermes status"
+
+    return {
+        "running": running,
+        "state": state,
+        "status_label": label,
+        "detail": detail,
+        "children": children,
+    }
 
 
 def start(spec: ServiceSpec, *, show_terminal: bool = False) -> None:
