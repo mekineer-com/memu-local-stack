@@ -177,7 +177,7 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to t
 
 | Toggle | Default | What |
 |--------|---------|------|
-| **Override Summarizer** | off | If on, replace SillyTavern's summary message with memU's. If off, memU's renders alongside it. |
+| **Override Summarizer** | on | If on, replace SillyTavern's summary message with memU's. If off, memU's renders alongside it. |
 | **Import Lorebooks** | on | Publishes memU categories as SillyTavern lorebooks named `memU - <Character> - <Category>`, so the soul's knowledge shows up in ST's world info. Unchecking deletes any existing ones for this character. |
 | **Mental Health Addon** | off | Enables the mental-health procedural sidecar — 15 curated anchor entries (rumination, grief, panic, self-criticism, loneliness, etc.) the soul can draw on when the conversation touches a relevant theme. Items appear in the turn prompt as `[mental_health-procedural-memory]`. Always-on once checked; not soul-gated. |
 
@@ -245,7 +245,7 @@ Memorize works the same way as SillyTavern: sleep gaps trigger extraction automa
 
 ## What's coming
 
-**Additional procedural-memory domains** — the `mental_health` domain is live (see Mental Health Addon checkbox above). The architecture supports more curated knowledge bases. Next candidate: `tool-use` — how the soul has learned to use external tools, extracted from experience.
+**Mentra smartglasses integration** — real-world sight and sound delivered directly to the soul. She sees what you see, hears what you hear — ambient awareness without wearable cameras or microphones on your phone. No TTS/STT glue required; the underlying model handles vision and audio natively.
 
 ---
 
