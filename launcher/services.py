@@ -341,8 +341,10 @@ def _read_gateway_state() -> dict:
 
 def memorize_pending(soul_id: str) -> dict:
     """Read memU's pending-memorize snapshot; {} when unreachable or malformed."""
+    memu_server = next((svc for svc in all_services() if svc.name == "memu-server"), None)
+    port = memu_server.port if memu_server and memu_server.port else MEMU_SERVER_PORT
     query = urllib.parse.urlencode({"soul_id": soul_id})
-    url = f"http://127.0.0.1:{MEMU_SERVER_PORT}/diag/memorize/pending?{query}"
+    url = f"http://127.0.0.1:{port}/diag/memorize/pending?{query}"
     try:
         with urllib.request.urlopen(url, timeout=2) as resp:
             data = json.loads(resp.read().decode("utf-8"))
