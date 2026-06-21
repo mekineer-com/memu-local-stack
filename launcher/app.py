@@ -1,4 +1,4 @@
-"""FastAPI app for the memU stack launcher."""
+"""FastAPI app for the OpenAlma launcher."""
 from __future__ import annotations
 
 import subprocess
@@ -22,7 +22,7 @@ CONFIG_LABELS: dict[str, str] = {
     "hermes-persona": "~/.hermes/SOUL.md  (Hermes persona, not our soul)",
 }
 
-app = FastAPI(title="memU Stack")
+app = FastAPI(title="OpenAlma")
 
 
 def _editable_configs(apps_root: Path | None) -> dict[str, Path]:

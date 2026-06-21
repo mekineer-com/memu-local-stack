@@ -1,4 +1,4 @@
-"""Soul selector helpers for the memU stack launcher."""
+"""Soul selector helpers for the OpenAlma launcher."""
 from __future__ import annotations
 
 from pathlib import Path

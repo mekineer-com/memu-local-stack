@@ -1,6 +1,6 @@
-# memU Stack Launcher
+# OpenAlma Launcher
 
-A small local web UI that starts, stops, and configures the four services in the memU stack:
+A small local web UI that starts, stops, and configures the four services in OpenAlma:
 
 - `mcp-memu-server` (memory engine)
 - `hermes-agent` gateway (WhatsApp/SillyTavern bridge to the soul)

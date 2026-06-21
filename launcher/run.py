@@ -1,4 +1,4 @@
-"""Entry point for the memU stack launcher."""
+"""Entry point for the OpenAlma launcher."""
 from __future__ import annotations
 
 import argparse
@@ -38,7 +38,7 @@ def _watch_browser_and_stop(chrome: subprocess.Popen, server: uvicorn.Server) ->
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="memU stack launcher")
+    parser = argparse.ArgumentParser(description="OpenAlma launcher")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")
