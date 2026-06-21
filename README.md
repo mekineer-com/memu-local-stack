@@ -135,7 +135,7 @@ After setup, open the memU extension panel in SillyTavern and set **Server URL**
    - **Services panel** — start, stop, and restart any service (mcp-memu-server, memU, SillyTavern, Hermes, WhatsApp bridge). View live logs for each. No terminal juggling needed.
    - **Settings** — edit `config.json` for the server, and `~/.hermes/config.yaml` for Hermes. If your repo layout differs from the default siblings arrangement, set the parent directory here.
    - **Memorize-pressure gauge** (home page) — how many unmemorized tokens are queued across all conversations vs the 8,000-token threshold, and whether a sleep gap has been detected. Useful for knowing if memorize is about to fire or is just waiting.
-   - **WhatsApp Channel Policy** — configure how each WhatsApp chat is handled: `full` — soul can choose to respond or listen. `listen_only` — soul can only listen. `excluded` — Hermes drops the message entirely. Reads and writes `~/.hermes/channel_directory.json` and `~/.hermes/memu.json`. This is where you tell the soul which conversations matter.
+   - **WhatsApp Channel Policy** — two settings per chat, both independent. **Policy** (`full` / `listen_only` / `excluded`): whether the soul can respond, can only listen, or is dropped entirely. **Mem** checkbox: whether this chat's messages are included in memory extraction, or kept as context-only. Reads and writes `~/.hermes/channel_directory.json` and `~/.hermes/memu.json`. This is where you tell the soul which conversations matter.
 
 No Docker. Developed on Alpine Linux but works on anything that can run Python 3.12 and Node.
 
@@ -219,7 +219,7 @@ So if you write a character description in ST, that's who she is — her own sel
 
 The soul appears as a WhatsApp contact. Hermes routes each incoming message to mcp-memu-server, which runs the full turn — retrieval, response, subconscious pass — then sends the reply back through the bridge.
 
-**Channel policy** — each WhatsApp chat can be set to `full` (soul can choose to respond or listen), `listen_only` (soul can only listen), or `excluded` (Hermes drops the message entirely). Configure per-chat via the Stack Launcher's WhatsApp Channel Policy page.
+**Channel policy** — each WhatsApp chat has two independent settings: **Policy** (`full` / `listen_only` / `excluded`) controls whether the soul can respond, can only listen, or is dropped entirely. **Mem** controls whether messages from that chat are included in memory extraction. Configure both per-chat via the Stack Launcher's WhatsApp Channel Policy page.
 
 **Bot mode** — in group chats, set `reply_prefix` in `~/.hermes/config.yaml` so the soul only responds to messages that start with a trigger (e.g. `!siri`). In direct chats, she responds to everything.
 
