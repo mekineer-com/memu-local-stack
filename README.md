@@ -1,4 +1,4 @@
-# memU Local Stack
+# OpenAlma
 
 _Last updated: 2026-06-20 (v0.0.12-buildfix)_
 
@@ -82,7 +82,7 @@ Clone repos as siblings under one parent directory:
 ├── mcp-memu-server/
 ├── memU/                         # cloned as "memu/" or "memU/" — engine
 ├── hermes-agent/                 # optional; only if using WhatsApp
-└── memu-local-stack/             # this repo (docs + launcher)
+└── OpenAlma/                     # this repo (docs + launcher)
 ```
 
 The Stack launcher walks up from its own directory to find this layout automatically, so no path configuration is needed when the repos sit side-by-side. If your layout differs, the launcher's `/settings` page lets you point at the parent directory explicitly.
@@ -122,7 +122,7 @@ After setup, open the memU extension panel in SillyTavern and set **Server URL**
 6. **Stack Launcher** (this repo) — a local web UI for managing all services:
 
    ```sh
-   cd memu-local-stack/launcher
+   cd OpenAlma/launcher
    python3 -m venv .venv
    .venv/bin/pip install -r requirements.txt
    .venv/bin/python run.py
@@ -149,7 +149,7 @@ Questions? Open an issue on the relevant repo.
 
 Specifically: the SQLite schema changes between versions, and there's no migration tooling yet. When you move to a new release tag, expect a fresh start — don't build anything irreplaceable on top of an old version.
 
-Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, memu-local-stack, and hermes-agent if you're using it).
+Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to the same one (memu, mcp-memu-server, memu-sillytavern-plugin, memu-sillytavern-extension, OpenAlma, and hermes-agent if you're using it).
 
 ### Release tags
 
