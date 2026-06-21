@@ -1,6 +1,6 @@
 # memU Local Stack
 
-_Last updated: 2026-06-12 (v0.0.11-buildfix)_
+_Last updated: 2026-06-20 (v0.0.12-buildfix)_
 
 > *Give your AI companion a real memory. One that belongs to it — and stays on your machine.*
 
@@ -157,6 +157,7 @@ Prefer `main` for the latest. If you'd rather pin to a tag, match all repos to t
 | `v0.0.9-buildfix` | Narrative Suggestion end-to-end; turn-prompt length caps + stateless chat_x; triple write-time dedup + symmetric canonicalization; consolidation reads day-files (drops full.json dependency); category config rename; lorebook sync + extension Memory bubble checkboxes |
 | `v0.0.10-buildfix` | Memorize Now works (tail mode); cross-conversation memorize; SPEAK/LISTEN gate; Hermes integration; Park et al. salience scoring; schema rename (dropped memu_ prefix); Postgres removed; relative date separators; upstream prompt cleanup |
 | `v0.0.11-buildfix` | Stock SillyTavern — no fork or patches needed; fail-loud error contract across all repos; mental health procedural sidecar; Stack launcher with desktop shortcut |
+| `v0.0.12-buildfix` | Unified chat renderer across all AI-facing paths; force/rebuild split; autonomous activity recap path (soul logs her own actions); APImw cadence global across platforms; ST↔WhatsApp cross-chat awareness; WhatsApp staleness gate + replay dedup; life goals separated from active intentions |
 
 ---
 
@@ -217,7 +218,7 @@ The soul appears as a WhatsApp contact. Hermes routes each incoming message to m
 
 **Bot mode** — in group chats, set `reply_prefix` in `~/.hermes/config.yaml` so the soul only responds to messages that start with a trigger (e.g. `!siri`). In direct chats, she responds to everything.
 
-**Autonomous loop** — Hermes can run a timed loop where the soul checks in with you unprompted, not just when you write first. Configured via `~/.hermes/config.yaml`.
+**Autonomous loop** — Hermes can run a timed loop where the soul checks in with you unprompted, not just when you write first. Configured via `~/.hermes/config.yaml`. What she does between turns is logged as an activity recap — she can see her own recent actions in her next turn prompt under `My Activities:`.
 
 **Attachments** — the soul can name a file under her workspace (`~/Desktop/siri/`) in her reply and it gets delivered as a WhatsApp document, with her reply text as a caption. Works for both normal replies and autonomous follow-ups she schedules herself.
 
