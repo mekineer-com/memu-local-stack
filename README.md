@@ -128,9 +128,14 @@ After setup, open the memU extension panel in SillyTavern and set **Server URL**
    .venv/bin/python run.py
    ```
 
-   Opens at `http://127.0.0.1:8765`. Start and stop any service, view logs, edit configs — no terminal juggling needed. To add a start-menu shortcut on Linux: `cp memu-stack.desktop ~/.local/share/applications/`.
+   Opens at `http://127.0.0.1:8765`. To add a start-menu shortcut on Linux: `cp memu-stack.desktop ~/.local/share/applications/`.
 
-   The launcher's home page shows a **memorize-pressure gauge** — how many unmemorized tokens are queued across all conversations vs the 8,000-token threshold, and whether a sleep gap has been detected. Useful for knowing if memorize is about to fire or just waiting.
+   What's inside:
+
+   - **Services panel** — start, stop, and restart any service (mcp-memu-server, memU, SillyTavern, Hermes, WhatsApp bridge). View live logs for each. No terminal juggling needed.
+   - **Settings** — edit `config.json` for the server, and `~/.hermes/config.yaml` for Hermes. If your repo layout differs from the default siblings arrangement, set the parent directory here.
+   - **Memorize-pressure gauge** (home page) — how many unmemorized tokens are queued across all conversations vs the 8,000-token threshold, and whether a sleep gap has been detected. Useful for knowing if memorize is about to fire or is just waiting.
+   - **WhatsApp Channel Policy** — configure how each WhatsApp chat is handled: whether it's a primary memorize target, a background-only chat, or excluded. Reads and writes `~/.hermes/channel_directory.json` and `~/.hermes/memu.json`. This is where you tell the soul which conversations matter.
 
 No Docker. Developed on Alpine Linux but works on anything that can run Python 3.12 and Node.
 
@@ -214,7 +219,7 @@ So if you write a character description in ST, that's who she is — her own sel
 
 The soul appears as a WhatsApp contact. Hermes routes each incoming message to mcp-memu-server, which runs the full turn — retrieval, response, subconscious pass — then sends the reply back through the bridge.
 
-**Channel policy** — each WhatsApp chat can be individually configured: whether it's a primary memorize target or just background context. Edit per-chat settings via the Stack Launcher's WhatsApp channel policy page (reads/writes `~/.hermes/channel_directory.json` and `~/.hermes/memu.json`).
+**Channel policy** — configure per-chat via the Stack Launcher's WhatsApp Channel Policy page (see above).
 
 **Bot mode** — in group chats, set `reply_prefix` in `~/.hermes/config.yaml` so the soul only responds to messages that start with a trigger (e.g. `!siri`). In direct chats, she responds to everything.
 
