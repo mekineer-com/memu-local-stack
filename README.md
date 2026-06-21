@@ -219,7 +219,7 @@ So if you write a character description in ST, that's who she is — her own sel
 
 The soul appears as a WhatsApp contact. Hermes routes each incoming message to mcp-memu-server, which runs the full turn — retrieval, response, subconscious pass — then sends the reply back through the bridge.
 
-**Channel policy** — configure per-chat via the Stack Launcher's WhatsApp Channel Policy page (see above).
+**Channel policy** — each WhatsApp chat can be set to `full` (soul can choose to respond or listen), `listen_only` (soul can only listen), or `excluded` (Hermes drops the message entirely). Configure per-chat via the Stack Launcher's WhatsApp Channel Policy page.
 
 **Bot mode** — in group chats, set `reply_prefix` in `~/.hermes/config.yaml` so the soul only responds to messages that start with a trigger (e.g. `!siri`). In direct chats, she responds to everything.
 
