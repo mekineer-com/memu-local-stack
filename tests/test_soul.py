@@ -45,3 +45,13 @@ def test_set_active_soul_id_does_not_stamp_when_config_write_fails(monkeypatch):
         soul.set_active_soul_id("Siri")
 
     assert stamped == []
+
+
+def test_read_active_user_id_from_first_soul_agent(monkeypatch):
+    monkeypatch.setattr(
+        soul,
+        "_load_config",
+        lambda: {"soul_mode": {"agents": {"main": {"role": "soul", "soul_id": "Siri", "user_id": "Marcos"}}}},
+    )
+
+    assert soul.read_active_user_id() == "Marcos"

@@ -140,6 +140,15 @@ def read_active_soul_id() -> str:
     return str(first.get("soul_id") or "").strip()
 
 
+def read_active_user_id() -> str:
+    config = _load_config()
+    agents = _soul_agents(config)
+    if not agents:
+        return ""
+    first = agents[0]
+    return str(first.get("user_id") or "").strip()
+
+
 def list_soul_ids() -> list[str]:
     config = _load_config()
     out: set[str] = set()

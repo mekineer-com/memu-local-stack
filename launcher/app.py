@@ -75,8 +75,9 @@ def index(request: Request) -> HTMLResponse:
         for k, p in editable_paths.items()
     ]
     active_soul = soul.read_active_soul_id()
+    active_user = soul.read_active_user_id()
     soul_ids = soul.list_soul_ids()
-    memorize = services.memorize_pending(active_soul) if active_soul else {}
+    memorize = services.memorize_pending(active_soul, active_user) if active_soul else {}
     return templates.TemplateResponse(
         request,
         "index.html",

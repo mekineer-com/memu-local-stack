@@ -1,11 +1,25 @@
 import json
 import sys
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "launcher"))
 
 import services  # noqa: E402
+
+
+class _FakeResponse:
+    status = 200
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self):
+        return b'{"threshold": 5000}'
 
 
 def test_whatsapp_bridge_is_not_a_normal_stack_service(tmp_path, monkeypatch):
@@ -19,6 +33,25 @@ def test_whatsapp_bridge_is_not_a_normal_stack_service(tmp_path, monkeypatch):
     assert "hermes-gateway" in names
     assert "whatsapp-bridge" not in names
     assert "whatsapp-web-source" not in names
+
+
+def test_memorize_pending_sends_user_id(monkeypatch):
+    seen = {}
+
+    def fake_urlopen(url, timeout):
+        seen["url"] = url
+        seen["timeout"] = timeout
+        return _FakeResponse()
+
+    monkeypatch.setattr(services, "all_services", lambda: [])
+    monkeypatch.setattr(services.urllib.request, "urlopen", fake_urlopen)
+
+    out = services.memorize_pending("Siri", "Marcos")
+    query = parse_qs(urlparse(seen["url"]).query)
+
+    assert out == {"threshold": 5000}
+    assert query == {"soul_id": ["Siri"], "user_id": ["Marcos"]}
+    assert seen["timeout"] == 2
 
 
 def test_hermes_gateway_status_uses_whatsapp_degraded_state(tmp_path, monkeypatch):
