@@ -210,13 +210,47 @@ def _matches_service_process(spec: ServiceSpec, pid: int) -> bool:
     return False
 
 
+def _hermes_whatsapp_child_markers() -> list[tuple[Path, tuple[str, ...]]]:
+    whatsapp_home = HERMES_HOME / "whatsapp"
+    session_path = whatsapp_home / "session"
+    return [
+        (
+            session_path / "bridge.pid",
+            ("bridge.js", "--session", str(session_path)),
+        ),
+        (
+            whatsapp_home / "web_source.pid",
+            (
+                "source-daemon.js",
+                "--db",
+                str(whatsapp_home / "web_source.db"),
+                "--status",
+                str(whatsapp_home / "web_source_status.json"),
+            ),
+        ),
+    ]
+
+
+def _cmdline_has_markers(pid: int, markers: tuple[str, ...]) -> bool:
+    cmd = _proc_cmdline(pid).lower()
+    return bool(cmd) and all(marker.lower() in cmd for marker in markers)
+
+
+def _matches_managed_process(spec: ServiceSpec, pid: int) -> bool:
+    if _matches_service_process(spec, pid):
+        return True
+    if spec.name != "hermes-gateway":
+        return False
+    return any(_cmdline_has_markers(pid, markers) for _pidfile, markers in _hermes_whatsapp_child_markers())
+
+
 def _scan_service_pids(spec: ServiceSpec) -> list[int]:
     pids: list[int] = []
     for entry in Path("/proc").iterdir():
         if not entry.name.isdigit():
             continue
         pid = int(entry.name)
-        if _is_alive(pid) and _matches_service_process(spec, pid):
+        if _is_alive(pid) and _matches_managed_process(spec, pid):
             pids.append(pid)
     return pids
 
@@ -231,6 +265,11 @@ def _verified_pid_candidates(spec: ServiceSpec) -> list[int]:
         if listener_pid is not None:
             candidates.append(listener_pid)
     candidates.extend(_scan_service_pids(spec))
+    if spec.name == "hermes-gateway":
+        for pidfile, _markers in _hermes_whatsapp_child_markers():
+            pid = _read_pid(pidfile)
+            if pid is not None:
+                candidates.append(pid)
 
     verified: list[int] = []
     seen: set[int] = set()
@@ -238,9 +277,16 @@ def _verified_pid_candidates(spec: ServiceSpec) -> list[int]:
         if pid in seen:
             continue
         seen.add(pid)
-        if _is_alive(pid) and _matches_service_process(spec, pid):
+        if _is_alive(pid) and _matches_managed_process(spec, pid):
             verified.append(pid)
     return verified
+
+
+def _remember_verified_pid(spec: ServiceSpec, pid: int) -> None:
+    spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
+    if _read_pid(spec.pid_path) == pid:
+        return
+    spec.pid_path.write_text(str(pid))
 
 
 def _clear_dead_pidfile(path: Path) -> None:
@@ -327,8 +373,7 @@ def _spawn_background(spec: ServiceSpec, env: dict[str, str]) -> subprocess.Pope
 def is_running(spec: ServiceSpec) -> bool:
     verified = _verified_pid_candidates(spec)
     if verified:
-        spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
-        spec.pid_path.write_text(str(verified[0]))
+        _remember_verified_pid(spec, verified[0])
         if spec.port is not None and _port_listener_pid(spec.port) is None:
             return _within_startup_grace(spec)
         return True
@@ -336,6 +381,16 @@ def is_running(spec: ServiceSpec) -> bool:
     if spec.adopt_pid_path is not None:
         _clear_dead_pidfile(spec.adopt_pid_path)
     return False
+
+
+def _is_stuck(spec: ServiceSpec) -> bool:
+    if spec.port is None:
+        return False
+    verified = _verified_pid_candidates(spec)
+    if not verified or _port_listener_pid(spec.port) is not None:
+        return False
+    _remember_verified_pid(spec, verified[0])
+    return not _within_startup_grace(spec)
 
 
 def _read_gateway_state() -> dict:
@@ -384,12 +439,7 @@ def _child_status_parts(name: str, data: object) -> dict[str, str] | None:
 def status(spec: ServiceSpec) -> dict:
     running = is_running(spec)
     pid = _read_pid(spec.pid_path) if running else None
-    stuck = (
-        not running
-        and spec.port is not None
-        and bool(_verified_pid_candidates(spec))
-        and _port_listener_pid(spec.port) is None
-    )
+    stuck = not running and _is_stuck(spec)
     state = "stuck" if stuck else ("running" if running else "stopped")
     label = "▲ stuck" if stuck else ("● running" if running else "○ stopped")
     detail = ""
@@ -427,6 +477,9 @@ def status(spec: ServiceSpec) -> dict:
 
     return {
         "running": running,
+        "stuck": stuck,
+        "startable": not running and not stuck,
+        "stoppable": running or stuck,
         "state": state,
         "status_label": label,
         "detail": detail,
@@ -437,6 +490,8 @@ def status(spec: ServiceSpec) -> dict:
 
 def start(spec: ServiceSpec, *, show_terminal: bool = False) -> None:
     if is_running(spec):
+        return
+    if _is_stuck(spec):
         return
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     spec.log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -455,6 +510,19 @@ def start(spec: ServiceSpec, *, show_terminal: bool = False) -> None:
     spec.pid_path.write_text(str(proc.pid))
 
 
+def _signal_pid(pid: int, sig: signal.Signals) -> None:
+    pgid = None
+    if hasattr(os, "getpgid") and hasattr(os, "killpg"):
+        try:
+            pgid = os.getpgid(pid)
+        except OSError:
+            pgid = None
+    if pgid == pid:
+        os.killpg(pgid, sig)
+    else:
+        os.kill(pid, sig)
+
+
 def stop(spec: ServiceSpec, *, timeout: float = 10.0) -> None:
     pids = _verified_pid_candidates(spec)
     if not pids:
@@ -464,7 +532,7 @@ def stop(spec: ServiceSpec, *, timeout: float = 10.0) -> None:
         return
     for pid in pids:
         try:
-            os.kill(pid, signal.SIGTERM)
+            _signal_pid(pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
         except PermissionError:
@@ -477,7 +545,7 @@ def stop(spec: ServiceSpec, *, timeout: float = 10.0) -> None:
     else:
         for pid in _verified_pid_candidates(spec):
             try:
-                os.kill(pid, signal.SIGKILL)
+                _signal_pid(pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
             except PermissionError:

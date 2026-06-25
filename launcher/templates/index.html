@@ -103,16 +103,18 @@
           {% endif %}
         </td>
         <td class="svc-actions">
-          {% if s.running %}
+          {% if s.stoppable %}
             <button class="btn" onclick="svcAction('{{ s.name }}','stop',this)">Stop</button>
             {% if 'pair_whatsapp_bridge' in s.actions %}
               <button class="btn" onclick="pairWhatsappBridge(this)">Pair reply bridge</button>
             {% endif %}
-          {% else %}
+          {% elif s.startable %}
             <button class="btn" onclick="svcAction('{{ s.name }}','start',this)">Start</button>
             {% if s.supports_terminal %}
               <label class="term-toggle"><input type="checkbox" id="term-{{ s.name }}" value="1"> show terminal</label>
             {% endif %}
+          {% else %}
+            <span class="muted">not startable</span>
           {% endif %}
         </td>
         <td><a href="/logs/{{ s.name }}">view</a></td>
@@ -263,14 +265,17 @@ function svcAction(name, action, btn) {
 }
 
 function actionHtml(name, data) {
-  if (data.running) {
+  if (data.stoppable || data.running) {
     var html = '<button class="btn" onclick="svcAction(\'' + esc(name) + '\',\'stop\',this)">Stop</button>';
     if ((data.actions || []).indexOf('pair_whatsapp_bridge') !== -1) {
       html += ' <button class="btn" onclick="pairWhatsappBridge(this)">Pair reply bridge</button>';
     }
     return html;
   }
-  return '<button class="btn" onclick="svcAction(\'' + esc(name) + '\',\'start\',this)">Start</button>';
+  if (data.startable !== false) {
+    return '<button class="btn" onclick="svcAction(\'' + esc(name) + '\',\'start\',this)">Start</button>';
+  }
+  return '<span class="muted">not startable</span>';
 }
 
 function pairWhatsappBridge(btn) {

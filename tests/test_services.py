@@ -1,5 +1,7 @@
 import json
+import os
 import sys
+import time
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -101,6 +103,9 @@ def test_status_reports_stuck_for_verified_process_without_port(tmp_path, monkey
         pid_path=tmp_path / "server.pid",
         port=8099,
     )
+    spec.pid_path.write_text("123", encoding="utf-8")
+    old = time.time() - services.STARTUP_GRACE_SECONDS - 1
+    os.utime(spec.pid_path, (old, old))
     monkeypatch.setattr(services, "is_running", lambda _spec: False)
     monkeypatch.setattr(services, "_verified_pid_candidates", lambda _spec: [123])
     monkeypatch.setattr(services, "_port_listener_pid", lambda _port: None)
@@ -110,6 +115,79 @@ def test_status_reports_stuck_for_verified_process_without_port(tmp_path, monkey
     assert status["running"] is False
     assert status["state"] == "stuck"
     assert status["status_label"] == "▲ stuck"
+    assert status["startable"] is False
+    assert status["stoppable"] is True
+
+
+def test_start_does_not_spawn_over_stuck_verified_process(tmp_path, monkeypatch):
+    spec = services.ServiceSpec(
+        name="memu-server",
+        label="mcp-memu-server",
+        cmd=["false"],
+        cwd=tmp_path,
+        log_path=tmp_path / "server.log",
+        pid_path=tmp_path / "server.pid",
+        port=8099,
+    )
+    spec.pid_path.write_text("123", encoding="utf-8")
+    old = time.time() - services.STARTUP_GRACE_SECONDS - 1
+    os.utime(spec.pid_path, (old, old))
+    monkeypatch.setattr(services, "_verified_pid_candidates", lambda _spec: [123])
+    monkeypatch.setattr(services, "_port_listener_pid", lambda _port: None)
+    spawned = []
+    monkeypatch.setattr(services, "_spawn_background", lambda *_args: spawned.append(True))
+
+    services.start(spec)
+
+    assert spawned == []
+    assert spec.pid_path.read_text(encoding="utf-8") == "123"
+
+
+def test_hermes_gateway_verified_pids_include_whatsapp_children(tmp_path, monkeypatch):
+    hermes_home = tmp_path / ".hermes"
+    session_path = hermes_home / "whatsapp" / "session"
+    session_path.mkdir(parents=True)
+    whatsapp_home = hermes_home / "whatsapp"
+    (session_path / "bridge.pid").write_text("31", encoding="utf-8")
+    (whatsapp_home / "web_source.pid").write_text("32", encoding="utf-8")
+    monkeypatch.setattr(services, "HERMES_HOME", hermes_home)
+    monkeypatch.setattr(services, "_scan_service_pids", lambda _spec: [])
+    monkeypatch.setattr(services, "_is_alive", lambda pid: pid in {31, 32})
+
+    def cmdline(pid):
+        if pid == 31:
+            return f"node bridge.js --port 3000 --session {session_path} --mode bot"
+        if pid == 32:
+            return (
+                "node source-daemon.js "
+                f"--db {whatsapp_home / 'web_source.db'} "
+                f"--status {whatsapp_home / 'web_source_status.json'}"
+            )
+        return ""
+
+    monkeypatch.setattr(services, "_proc_cmdline", cmdline)
+    monkeypatch.setattr(services, "_proc_cwd", lambda _pid: None)
+    spec = services.ServiceSpec(
+        name="hermes-gateway",
+        label="hermes-agent gateway",
+        cmd=[],
+        cwd=tmp_path / "hermes-agent",
+        log_path=tmp_path / "gateway.log",
+        pid_path=tmp_path / "gateway.pid",
+    )
+
+    assert services._verified_pid_candidates(spec) == [31, 32]
+
+
+def test_signal_pid_uses_process_group_for_group_leader(monkeypatch):
+    calls = []
+    monkeypatch.setattr(services.os, "getpgid", lambda pid: pid)
+    monkeypatch.setattr(services.os, "killpg", lambda pgid, sig: calls.append(("pg", pgid, sig)))
+    monkeypatch.setattr(services.os, "kill", lambda pid, sig: calls.append(("pid", pid, sig)))
+
+    services._signal_pid(44, services.signal.SIGTERM)
+
+    assert calls == [("pg", 44, services.signal.SIGTERM)]
 
 
 def test_stop_terminates_all_verified_pids_and_clears_dead_pidfiles(tmp_path, monkeypatch):
