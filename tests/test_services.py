@@ -264,16 +264,18 @@ def test_hermes_child_markers_follow_configured_whatsapp_paths(tmp_path, monkeyp
     custom_session = tmp_path / "wa-session"
     custom_status = tmp_path / "wa" / "status.json"
     custom_db = tmp_path / "wa" / "source.db"
+    custom_script = tmp_path / "wa" / "source-daemon.js"
     custom_session.mkdir()
     custom_status.parent.mkdir()
+    monkeypatch.setenv("WA_ROOT", str(custom_status.parent))
     (hermes_home / "config.yaml").write_text(
         "\n".join([
             "whatsapp:",
             f"  session_path: {custom_session}",
-            f"  web_source_db: {custom_db}",
-            f"  web_source_status: {custom_status}",
+            "  web_source_db: $WA_ROOT/source.db",
+            "  web_source_status: $WA_ROOT/status.json",
             "  bridge_script: /opt/custom/bridge.js",
-            "  web_source_script: /opt/custom/source-daemon.js",
+            "  web_source_script: $WA_ROOT/source-daemon.js",
             "",
         ]),
         encoding="utf-8",
@@ -288,7 +290,7 @@ def test_hermes_child_markers_follow_configured_whatsapp_paths(tmp_path, monkeyp
         if pid == 31:
             return f"node /opt/custom/bridge.js --session {custom_session}"
         if pid == 32:
-            return f"node /opt/custom/source-daemon.js --db {custom_db} --status {custom_status}"
+            return f"node {custom_script} --db {custom_db} --status {custom_status}"
         return ""
 
     monkeypatch.setattr(services, "_proc_cmdline", cmdline)

@@ -258,10 +258,12 @@ def _read_hermes_whatsapp_config() -> dict[str, str]:
     return out
 
 
-def _configured_path(config: dict[str, str], key: str, default: Path) -> Path:
+def _configured_path(config: dict[str, str], key: str, default: Path, *, expand_vars: bool = False) -> Path:
     raw = config.get(key)
     if not raw:
         return default
+    if expand_vars:
+        raw = os.path.expandvars(raw)
     return Path(raw).expanduser()
 
 
@@ -269,14 +271,23 @@ def _hermes_whatsapp_child_markers() -> list[tuple[Path, tuple[str, ...]]]:
     whatsapp_home = HERMES_HOME / "whatsapp"
     config = _read_hermes_whatsapp_config()
     session_path = _configured_path(config, "session_path", whatsapp_home / "session")
-    web_source_db = _configured_path(config, "web_source_db", whatsapp_home / "web_source.db")
+    web_source_db = _configured_path(
+        config,
+        "web_source_db",
+        whatsapp_home / "web_source.db",
+        expand_vars=True,
+    )
     web_source_status = _configured_path(
         config,
         "web_source_status",
         whatsapp_home / "web_source_status.json",
+        expand_vars=True,
     )
     bridge_script = _strip_simple_yaml_value(config.get("bridge_script", "bridge.js"))
-    web_source_script = _strip_simple_yaml_value(config.get("web_source_script", "source-daemon.js"))
+    web_source_script = os.path.expandvars(
+        _strip_simple_yaml_value(config.get("web_source_script", "source-daemon.js"))
+    )
+    web_source_script = str(Path(web_source_script).expanduser())
     return [
         (
             session_path / "bridge.pid",
