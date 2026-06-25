@@ -48,6 +48,21 @@ class ServiceSpec:
     adopt_pid_parser: Callable[[str], int | None] | None = None
 
 
+def _resolve_memu_server_pid_path(root: Path) -> Path:
+    config_path = root / "mcp-memu-server" / "config.json"
+    try:
+        raw = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return root / "mcp-memu-server" / ".memu-server.pid"
+    pid_file = raw.get("pid_file") if isinstance(raw, dict) else None
+    if not isinstance(pid_file, str) or not pid_file.strip():
+        return root / "mcp-memu-server" / ".memu-server.pid"
+    path = Path(pid_file).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (root / "mcp-memu-server" / path).resolve()
+
+
 def _parse_gateway_pid(text: str) -> int | None:
     try:
         data = json.loads(text)
@@ -70,7 +85,7 @@ def all_services() -> list[ServiceSpec]:
             log_path=Path("/tmp/memu-server.out"),
             pid_path=STATE_DIR / "memu-server.pid",
             port=MEMU_SERVER_PORT,
-            adopt_pid_path=root / "mcp-memu-server" / ".memu-server.pid",
+            adopt_pid_path=_resolve_memu_server_pid_path(root),
         ),
         ServiceSpec(
             name="hermes-gateway",
@@ -191,8 +206,50 @@ def _matches_service_process(spec: ServiceSpec, pid: int) -> bool:
             return False
         return "gateway.run" in cmd or "hermes gateway run" in cmd
     if spec.name == "sillytavern":
-        return "server.js" in cmd or "start.sh" in cmd
+        return cwd_matches and ("server.js" in cmd or "start.sh" in cmd)
     return False
+
+
+def _scan_service_pids(spec: ServiceSpec) -> list[int]:
+    pids: list[int] = []
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        pid = int(entry.name)
+        if _is_alive(pid) and _matches_service_process(spec, pid):
+            pids.append(pid)
+    return pids
+
+
+def _verified_pid_candidates(spec: ServiceSpec) -> list[int]:
+    candidates: list[int] = []
+    for pid in (_read_pid(spec.pid_path), _read_adopt_pid(spec)):
+        if pid is not None:
+            candidates.append(pid)
+    if spec.port is not None:
+        listener_pid = _port_listener_pid(spec.port)
+        if listener_pid is not None:
+            candidates.append(listener_pid)
+    candidates.extend(_scan_service_pids(spec))
+
+    verified: list[int] = []
+    seen: set[int] = set()
+    for pid in candidates:
+        if pid in seen:
+            continue
+        seen.add(pid)
+        if _is_alive(pid) and _matches_service_process(spec, pid):
+            verified.append(pid)
+    return verified
+
+
+def _clear_dead_pidfile(path: Path) -> None:
+    pid = _read_pid(path)
+    if pid is None or not _is_alive(pid):
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _within_startup_grace(spec: ServiceSpec) -> bool:
@@ -267,67 +324,17 @@ def _spawn_background(spec: ServiceSpec, env: dict[str, str]) -> subprocess.Pope
         log.close()
 
 
-def _adopt(spec: ServiceSpec) -> None:
-    """If launcher has no pid and an external one is alive, copy it in."""
-    if _read_pid(spec.pid_path) is not None:
-        return
-    candidate = _read_adopt_pid(spec)
-    if (
-        candidate is not None
-        and _is_alive(candidate)
-        and _matches_service_process(spec, candidate)
-    ):
-        spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
-        spec.pid_path.write_text(str(candidate))
-        return
-    if spec.port is not None:
-        candidate = _port_listener_pid(spec.port)
-    if (
-        candidate is not None
-        and _is_alive(candidate)
-        and _matches_service_process(spec, candidate)
-    ):
-        spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
-        spec.pid_path.write_text(str(candidate))
-
-
 def is_running(spec: ServiceSpec) -> bool:
-    _adopt(spec)
-    pid = _read_pid(spec.pid_path)
-    if pid is not None and _is_alive(pid):
-        if not _matches_service_process(spec, pid):
-            _clear_pid(spec)
-            return False
-        # Port-bound services can be alive briefly before listener bind;
-        # keep them "running" during startup grace to prevent duplicate starts.
-        if spec.port is not None:
-            listener_pid = _port_listener_pid(spec.port)
-            if listener_pid is None:
-                if _within_startup_grace(spec):
-                    return True
-                _clear_pid(spec)
-                return False
-            if listener_pid != pid:
-                if _is_alive(listener_pid) and _matches_service_process(spec, listener_pid):
-                    spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
-                    spec.pid_path.write_text(str(listener_pid))
-                    return True
-                _clear_pid(spec)
-                return False
+    verified = _verified_pid_candidates(spec)
+    if verified:
+        spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
+        spec.pid_path.write_text(str(verified[0]))
+        if spec.port is not None and _port_listener_pid(spec.port) is None:
+            return _within_startup_grace(spec)
         return True
-
-    if spec.port is not None:
-        listener_pid = _port_listener_pid(spec.port)
-        if (
-            listener_pid is not None
-            and _is_alive(listener_pid)
-            and _matches_service_process(spec, listener_pid)
-        ):
-            spec.pid_path.parent.mkdir(parents=True, exist_ok=True)
-            spec.pid_path.write_text(str(listener_pid))
-            return True
-
     _clear_pid(spec)
+    if spec.adopt_pid_path is not None:
+        _clear_dead_pidfile(spec.adopt_pid_path)
     return False
 
 
@@ -377,8 +384,14 @@ def _child_status_parts(name: str, data: object) -> dict[str, str] | None:
 def status(spec: ServiceSpec) -> dict:
     running = is_running(spec)
     pid = _read_pid(spec.pid_path) if running else None
-    state = "running" if running else "stopped"
-    label = "● running" if running else "○ stopped"
+    stuck = (
+        not running
+        and spec.port is not None
+        and bool(_verified_pid_candidates(spec))
+        and _port_listener_pid(spec.port) is None
+    )
+    state = "stuck" if stuck else ("running" if running else "stopped")
+    label = "▲ stuck" if stuck else ("● running" if running else "○ stopped")
     detail = ""
     children: list[dict[str, str]] = []
     actions: list[str] = []
@@ -443,37 +456,35 @@ def start(spec: ServiceSpec, *, show_terminal: bool = False) -> None:
 
 
 def stop(spec: ServiceSpec, *, timeout: float = 10.0) -> None:
-    pid = _read_pid(spec.pid_path)
-    if pid is None:
-        return
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except ProcessLookupError:
+    pids = _verified_pid_candidates(spec)
+    if not pids:
         _clear_pid(spec)
+        if spec.adopt_pid_path is not None:
+            _clear_dead_pidfile(spec.adopt_pid_path)
         return
-    except PermissionError:
-        return
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        except PermissionError:
+            continue
     deadline = time.time() + timeout
     while time.time() < deadline:
-        if not _is_alive(pid):
-            break
-        # If a service has its own external pidfile contract (for example
-        # mcp-memu-server's single-instance guard), we must wait for process exit
-        # before returning; otherwise an immediate restart can be rejected even
-        # though the port is already free.
-        if (
-            spec.adopt_pid_path is None
-            and spec.port is not None
-            and _port_listener_pid(spec.port) is None
-        ):
+        if not _verified_pid_candidates(spec):
             break
         time.sleep(0.1)
     else:
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        for pid in _verified_pid_candidates(spec):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            except PermissionError:
+                continue
     _clear_pid(spec)
+    if spec.adopt_pid_path is not None:
+        _clear_dead_pidfile(spec.adopt_pid_path)
 
 
 def _clear_pid(spec: ServiceSpec) -> None:
