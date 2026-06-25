@@ -264,6 +264,7 @@ def test_hermes_gateway_status_uses_whatsapp_degraded_state(tmp_path, monkeypatc
     hermes_home.mkdir()
     (hermes_home / "gateway_state.json").write_text(
         json.dumps({
+            "pid": 111,
             "platforms": {
                 "whatsapp": {
                     "state": "degraded",
@@ -276,7 +277,11 @@ def test_hermes_gateway_status_uses_whatsapp_degraded_state(tmp_path, monkeypatc
         encoding="utf-8",
     )
     monkeypatch.setattr(services, "HERMES_HOME", hermes_home)
-    monkeypatch.setattr(services, "is_running", lambda _spec: True)
+    monkeypatch.setattr(
+        services,
+        "_runtime_state",
+        lambda _spec: services.RuntimeState((111,), 111, running=True, stuck=False),
+    )
     spec = services.ServiceSpec(
         name="hermes-gateway",
         label="hermes-agent gateway",
@@ -316,7 +321,11 @@ def test_hermes_gateway_status_ignores_stale_runtime_pid(tmp_path, monkeypatch):
     pid_path = tmp_path / "gateway.pid"
     pid_path.write_text("222", encoding="utf-8")
     monkeypatch.setattr(services, "HERMES_HOME", hermes_home)
-    monkeypatch.setattr(services, "is_running", lambda _spec: True)
+    monkeypatch.setattr(
+        services,
+        "_runtime_state",
+        lambda _spec: services.RuntimeState((222,), 222, running=True, stuck=False),
+    )
     spec = services.ServiceSpec(
         name="hermes-gateway",
         label="hermes-agent gateway",

@@ -48,6 +48,14 @@ class ServiceSpec:
     adopt_pid_parser: Callable[[str], int | None] | None = None
 
 
+@dataclass(frozen=True)
+class RuntimeState:
+    verified_pids: tuple[int, ...]
+    pid: int | None
+    running: bool
+    stuck: bool
+
+
 def _resolve_memu_server_pid_path(root: Path) -> Path:
     config_path = root / "mcp-memu-server" / "config.json"
     try:
@@ -371,26 +379,33 @@ def _spawn_background(spec: ServiceSpec, env: dict[str, str]) -> subprocess.Pope
 
 
 def is_running(spec: ServiceSpec) -> bool:
-    verified = _verified_pid_candidates(spec)
-    if verified:
-        _remember_verified_pid(spec, verified[0])
-        if spec.port is not None and _port_listener_pid(spec.port) is None:
-            return _within_startup_grace(spec)
-        return True
-    _clear_pid(spec)
-    if spec.adopt_pid_path is not None:
-        _clear_dead_pidfile(spec.adopt_pid_path)
-    return False
+    return _runtime_state(spec).running
 
 
-def _is_stuck(spec: ServiceSpec) -> bool:
-    if spec.port is None:
-        return False
+def _runtime_state(spec: ServiceSpec) -> RuntimeState:
     verified = _verified_pid_candidates(spec)
-    if not verified or _port_listener_pid(spec.port) is not None:
-        return False
-    _remember_verified_pid(spec, verified[0])
-    return not _within_startup_grace(spec)
+    if not verified:
+        _clear_pid(spec)
+        if spec.adopt_pid_path is not None:
+            _clear_dead_pidfile(spec.adopt_pid_path)
+        return RuntimeState(verified_pids=(), pid=None, running=False, stuck=False)
+
+    pid = verified[0]
+    _remember_verified_pid(spec, pid)
+    if spec.port is None or _port_listener_pid(spec.port) is not None:
+        return RuntimeState(
+            verified_pids=tuple(verified),
+            pid=pid,
+            running=True,
+            stuck=False,
+        )
+    running = _within_startup_grace(spec)
+    return RuntimeState(
+        verified_pids=tuple(verified),
+        pid=pid,
+        running=running,
+        stuck=not running,
+    )
 
 
 def _read_gateway_state() -> dict:
@@ -437,9 +452,9 @@ def _child_status_parts(name: str, data: object) -> dict[str, str] | None:
 
 
 def status(spec: ServiceSpec) -> dict:
-    running = is_running(spec)
-    pid = _read_pid(spec.pid_path) if running else None
-    stuck = not running and _is_stuck(spec)
+    runtime = _runtime_state(spec)
+    running = runtime.running
+    stuck = runtime.stuck
     state = "stuck" if stuck else ("running" if running else "stopped")
     label = "▲ stuck" if stuck else ("● running" if running else "○ stopped")
     detail = ""
@@ -448,7 +463,7 @@ def status(spec: ServiceSpec) -> dict:
 
     if spec.name == "hermes-gateway" and running:
         gateway_state = _read_gateway_state()
-        if gateway_state.get("pid") != pid:
+        if gateway_state.get("pid") != runtime.pid:
             gateway_state = {}
         platforms = gateway_state.get("platforms") if isinstance(gateway_state, dict) else None
         whatsapp = platforms.get("whatsapp") if isinstance(platforms, dict) else None
@@ -489,9 +504,8 @@ def status(spec: ServiceSpec) -> dict:
 
 
 def start(spec: ServiceSpec, *, show_terminal: bool = False) -> None:
-    if is_running(spec):
-        return
-    if _is_stuck(spec):
+    runtime = _runtime_state(spec)
+    if runtime.running or runtime.stuck:
         return
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     spec.log_path.parent.mkdir(parents=True, exist_ok=True)
