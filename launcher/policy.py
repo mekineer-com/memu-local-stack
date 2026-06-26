@@ -261,7 +261,10 @@ def read_channel_settings() -> dict[str, dict[str, bool | str]]:
                     memorize = raw_memorize and policy != "excluded"
                 else:
                     memorize = _default_memorize_for_policy(policy)
-                out[str(chat_id)] = {"policy": policy, "memorize": memorize}
+                row = dict(entry)
+                row["policy"] = policy
+                row["memorize"] = memorize
+                out[str(chat_id)] = row
     return out
 
 
