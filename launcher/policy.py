@@ -292,11 +292,21 @@ def write_channel_settings(updates: dict[str, dict[str, bool | str]]) -> None:
         if p == "excluded":
             memorize = False
 
-        if p == "full" and memorize:
+        existing = channels.get(chat_id)
+        row = dict(existing) if isinstance(existing, dict) else {}
+        metadata = {
+            key: value
+            for key, value in row.items()
+            if key not in {"policy", "memorize"} and value not in (None, "", [], {})
+        }
+
+        if p == "full" and memorize and not metadata:
             # Default behavior: no row needed.
             channels.pop(chat_id, None)
             continue
-        channels[chat_id] = {"policy": p, "memorize": memorize}
+        row["policy"] = p
+        row["memorize"] = memorize
+        channels[chat_id] = row
 
     POLICY_PATH.parent.mkdir(parents=True, exist_ok=True)
     POLICY_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
